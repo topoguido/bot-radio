@@ -3,13 +3,8 @@ import dht
 from machine import Pin
 import gc
 import asyncio
-from utime import sleep
 from config import wlan_com
 
-# e = espnow.ESPNow()
-# e.active(True)
-# #master = wlan_com.get('mac_master')
-# master = b'\xff\xff\xff\xff\xff\xff'
 print('Configurando pines')
 rele = Pin(4,Pin.OUT)
 sensor = dht.DHT11(Pin(5, Pin.IN))
@@ -29,7 +24,6 @@ async def rele_control():
 async def msg_control():
     e = espnow.ESPNow()
     e.active(True)
-    #master = wlan_com.get('mac_master')
     master = b'\xff\xff\xff\xff\xff\xff'
     print('Escuchando')
     while True:
