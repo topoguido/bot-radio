@@ -1,6 +1,9 @@
 
 from config import utelegram_config
 from config import wlan_com
+from config import disp_conf
+
+from machine import reset
 
 import utelegram
 import time
@@ -58,6 +61,12 @@ while True:
         elif bot.command == '/saluda':
             print('Saludando a pedido')
             bot.send(bot.chat_id, f'Hola {bot.chat_name}, saludos!')
+
+        elif bot.command == '/reset':
+            print('Reinicio de dispositivo')
+            bot.send(bot.chat_id, f'Ok, voy a reiniciarme en {disp_conf['reset_delay']} segundos.')
+            time.sleep(disp_conf['reset_delay'])
+            reset()
 
     time.sleep(3)
     gc.collect()

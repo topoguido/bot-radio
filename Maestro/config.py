@@ -11,3 +11,7 @@ utelegram_config = {
 wlan_com = {
     'mac_sensortx': bytes.fromhex('8ece4ee97325')
 }
+
+disp_conf = {
+    'reset_delay': int(10)
+}

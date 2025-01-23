@@ -1,6 +1,8 @@
 from config import wifi_config
+from machine import reset
 import network
 import ubinascii
+import senko
 
 wlan = network.WLAN(network.WLAN.IF_STA)
 if not wlan.isconnected():
@@ -14,3 +16,14 @@ if not wlan.isconnected():
         pass
     if wlan.isconnected():
         print(f'conectado a red con IP {wlan.ipconfig("addr4")}')
+
+        OTA = senko.Senko(user='topoguido', 
+                          repo='bot-radio', 
+                          files=['config.py','boot.py','main.py','hardware.py','utelegram.py'],
+                          working_dir='Maestro'
+                          )
+        if OTA.update():
+            print('Nueva version de soft')
+            reset()
+        else:
+            print('Soft al dia')
