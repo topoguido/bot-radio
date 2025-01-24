@@ -18,7 +18,8 @@ if not wlan.isconnected():
         print(f'conectado a red con IP {wlan.ipconfig("addr4")}')
 
         OTA = senko.Senko(user='topoguido', 
-                          repo='bot-radio', 
+                          repo='bot-radio',
+                          branch='dev', 
                           files=['config.py','boot.py','main.py','hardware.py','utelegram.py'],
                           working_dir='Maestro'
                           )

@@ -24,6 +24,7 @@ e.add_peer(dir_sensor_tx)
 while True:
     print('bot en escucha')
     if bot.read_once():
+
         # Analiza el comando recibido y responde
         if bot.command == '/ping':
             bot.reply_ping(bot.chat_id)
