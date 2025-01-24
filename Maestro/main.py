@@ -12,7 +12,7 @@ import hardware
 import espnow
 
 print('Iniciando bot')
-bot = utelegram.ubot(utelegram_config['token'], True)
+bot = utelegram.ubot(utelegram_config['token'], bool(utelegram_config['debug']))
 bot.saluda(utelegram_config['chat_id_default'])
 rele = hardware.rele() # relé utilizado para hacer saltar al diferencial
 sensor_st = hardware.sensor()  # sensor del estudio
