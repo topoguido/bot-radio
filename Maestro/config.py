@@ -1,11 +1,11 @@
 wifi_config = {
-    'ssid':'CALESITA',
-    'password':'3empanadas'
+    'ssid':'',
+    'password':''
 }
 
 utelegram_config = {
-    'token': '6155203747:AAHXbcoaD_Axnoor4fBVeJQW1fVG4BXjOmk',
-    'chat_id_default': '677317280',
+    'token': '',
+    'chat_id_default': '',
     'debug': True
 }
 
