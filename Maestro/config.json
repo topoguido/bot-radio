@@ -1,0 +1,26 @@
+{
+  "wifi_config": {
+    "ssid": "DEEPFAKE",
+    "password": "Callefalsa123"
+  },
+
+  "wlan_com": {
+    "mac_sensortx": "8ece4ee97325"
+  },
+
+  "device_conf": {
+    "reset_delay": 3
+  },
+
+  "update_params": {
+    "status": true,
+    "user": "topoguido",
+    "repo": "bot-radio",
+    "branch": "main",
+    "files": ["boot.py", "main.py", "hardware.py", "utelegram.py", "Bot_configurations.py", "Configurations.py", "config.json"],
+    "working_dir": "Maestro"
+  },
+
+  "debug": true
+}
+
