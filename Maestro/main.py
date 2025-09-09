@@ -3,7 +3,6 @@ import utelegram
 import time
 import gc
 import hardware
-import espnow
 from Configurations import Configurations
 
 configs = Configurations("main")
@@ -11,12 +10,9 @@ configs = Configurations("main")
 print('Iniciando bot')
 bot = utelegram.ubot(bool(configs.debug))
 bot.saluda()
-rele = hardware.rele() # relé utilizado para hacer saltar al diferencial
+releDif = hardware.releDif() # relé utilizado para hacer saltar al diferencial
+releContac = hardware.releContac() # relé utilizado para accionar el contactor de 220V
 sensor_st = hardware.sensor()  # sensor del estudio
-dir_sensor_tx = bytes.fromhex(configs.mac_sensortx)
-e = espnow.ESPNow()
-e.active(True)
-e.add_peer(dir_sensor_tx)
 
 while True:
     print('bot en escucha')
@@ -29,43 +25,34 @@ while True:
         elif bot.command == '/temp':
             # Obtiene los valores de temperatura y humedad del sensor cableado (estudio)
             sensor_st.update_values()
-            bot.send(bot.chat_id, f'Estudio: Temp: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%')
+            bot.send(bot.chat_id, f'Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%')
             
-            # Se solicitan al dispositivo ESP01 por wifi que devuelva los datos del sensor
-            # ubicados en la planta transmisora.
-            print("Solicitando datos al sensor del transmisor")
-            e.send(dir_sensor_tx, "values")
-            host, msg = e.recv(timeout_ms=3000)
-            if msg:
-                data = msg.decode('utf-8').split(',')
-                print(f'Datos recibidos de sensor del transmisor {data}')
-                temp = data[0]
-                hum = data[1]
-                fan = data[2]
-                if fan == '1':
-                    fan_status = 'Encendido'
-                elif fan == '0':
-                    fan_status = 'Apagado'
-                else:
-                    fan_status = 'sin datos'
-                bot.send(bot.chat_id, f'Transmisor: Temp: {temp}° - Humedad: {hum}% - Ventilador: {fan_status}')
-            else:
-                print('No hay comunicacion con sensor de transmisor')
-                print(e.stats())
-                bot.send(bot.chat_id, "No puedo obtener los datos del transmisor")
-    
-        elif bot.command == '/apagar':
+        elif bot.command == '/cortar':
             # se activa relé que pone a tierra el vivo de la red de 220V.
             print('Ejecutando apagado de emergencia')
             bot.send(bot.chat_id, "Ok, vamos a cortar la energía")
-            if rele.shutdown():
+            if releDif.shutdown():
                 bot.send(bot.chat_id, "Se ha cortado la energía")
             else:
                 bot.send(bot.chat_id, "Parece que no lo he logrado")
 
-        elif bot.command == '/saluda':
-            print('Saludando a pedido')
-            bot.send(bot.chat_id, f'Hola {bot.chat_name}, saludos!')
+        elif bot.command == "/apagar":
+            #Acciona contactor que releva la red de 220V
+            print("Apagando la radio")
+            bot.send(bot.chat_id, "Apagando la radio")
+            if releContac.off():
+                bot.send(bot.chat_id, "Se ha apagado la radio")
+            else:
+                bot.send(bot.chat_id, "Parece que no lo he logrado")
+
+        elif bot.command == "/encender":
+            #Acciona contactor que conecta la red de 220V
+            print("Encendiendo la radio")
+            bot.send(bot.chat_id, "Encendiendo la radio")
+            if releContac.on():
+                bot.send(bot.chat_id, "Se ha encendido la radio")
+            else:
+                bot.send(bot.chat_id, "Parece que no lo he logrado")
 
         elif bot.command == '/reset':
             print('Reinicio de dispositivo')

@@ -107,26 +107,31 @@ class ubot:
 
     def message_handler(self, message):
         if 'text' in message['message']:
-            parts = message['message']['text'].split(' ')
+            parts = message['message']['text'].split('@')[0]
             self.update_temp(self.message_offset )
             if 'entities' in message['message']:
                 for entity in message['message']['entities']:
                     if 'type' in entity and entity['type'] == 'bot_command':
-                        if parts[0] in self.commands:
-                            if self.debug: print(f'Comando recibido: {parts[0]}')
-                            self.command = parts[0]
+                        if parts in self.commands:
+                            if self.debug: print(f'Comando recibido: {parts}')
+                            self.command = parts
                             self.commandOK = True
-                            self.chat_id = message['message']['chat']['id']
-                            self.chat_username = message['message']['chat']['username']
-                            self.chat_name = message['message']['chat']['first_name']
+
+                            if message['message']['chat']['type'] == "private":
+                                self.chat_id = message['message']['chat']['id']
+                                self.chat_username = message['message']['chat']['username']
+                                self.chat_name = message['message']['chat']['first_name']
+                            elif message['message']['chat']['type'] in ["group", "supergroup"]:
+                                self.chat_id = message['message']['chat']['id']
+                                self.chat_name = message['message']['from']['first_name']
+                                
                             return True
 
                         else:
                             self.commandOK = False
-                            self.send(message['message']['chat']['id'], 'No reconozco ese comando \U0001F611')
                             return False
-                    else:
-                        print(f'Es un mensaje normal con el texto: {parts}')
+            else:
+                print(f'Es un mensaje normal con el texto: {parts}')
 
     def update_temp(self, id_msg):
         if self.debug: print(f'Metodo update_temp(id={id_msg})')
@@ -167,3 +172,4 @@ class ubot:
             return id
 
         return temp["ultimo_id_msg"]
+
