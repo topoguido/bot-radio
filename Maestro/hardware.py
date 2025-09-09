@@ -18,28 +18,29 @@ class sensor:
     
 class releDif:
     def __init__(self):
-        self.releDif = Pin(2, Pin.OUT)
+        self.rele = Pin(2, Pin.OUT)
 
     def shutdown(self):
-        self.releDif.value(1)
+        self.rele.value(1)
         sleep(0.5)
-        self.releDif.value(0)
+        self.rele.value(0)
         return True
     
 class releContac:
     def __init__(self):
-        self.releContac = Pin(4, Pin.OUT)
+        self.rele = Pin(4, Pin.OUT)
+        #self.rele.value(0)
 
     def on(self):
-        self.releContac.value(0)
+        self.rele.value(0)
         return True
     
     def off(self):
-        self.releContac.value(1)
+        self.rele.value(1)
         return True
     
     def status(self):
-        return self.releContac.value()
+        return self.rele.value()
         
         
     

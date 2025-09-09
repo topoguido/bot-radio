@@ -22,10 +22,19 @@ while True:
         if bot.command == '/ping':
             bot.reply_ping(bot.chat_id)
 
-        elif bot.command == '/temp':
+        elif bot.command == '/estado':
             # Obtiene los valores de temperatura y humedad del sensor cableado (estudio)
             sensor_st.update_values()
             bot.send(bot.chat_id, f'Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%')
+            # Estado de la red de 220V
+            print(f'estado: {releContac.status()}')
+            if not releContac.status():
+                status = "Conectado"
+            elif releContac.status():
+                status = "No conectado"
+            
+            bot.send(bot.chat_id, f'Estado de la red de 220V: {status}')
+            
             
         elif bot.command == '/cortar':
             # se activa relé que pone a tierra el vivo de la red de 220V.
@@ -39,20 +48,36 @@ while True:
         elif bot.command == "/apagar":
             #Acciona contactor que releva la red de 220V
             print("Apagando la radio")
-            bot.send(bot.chat_id, "Apagando la radio")
-            if releContac.off():
-                bot.send(bot.chat_id, "Se ha apagado la radio")
+            if not releContac.status():
+                bot.send(bot.chat_id, "Apagando la radio")
+                releContac.off()
+                time.sleep(0.5)
+                if releContac.status():
+                    bot.send(bot.chat_id, "Se ha apagado la radio")
+                else:
+                    bot.send(bot.chat_id, "Parece que no lo he logrado")
+
             else:
-                bot.send(bot.chat_id, "Parece que no lo he logrado")
+                bot.send(bot.chat_id, "Ya está apagada")
+
+            
 
         elif bot.command == "/encender":
             #Acciona contactor que conecta la red de 220V
             print("Encendiendo la radio")
-            bot.send(bot.chat_id, "Encendiendo la radio")
-            if releContac.on():
-                bot.send(bot.chat_id, "Se ha encendido la radio")
+            if releContac.status():
+                bot.send(bot.chat_id, "Encendiendo la radio")
+                releContac.on()
+                time.sleep(0.5)
+                if not releContac.status():
+                    bot.send(bot.chat_id, "Se ha encendido la radio")
+                else:
+                    bot.send(bot.chat_id, "Parece que no lo he logrado")
+
             else:
-                bot.send(bot.chat_id, "Parece que no lo he logrado")
+                bot.send(bot.chat_id, "Ya está encendida")
+
+
 
         elif bot.command == '/reset':
             print('Reinicio de dispositivo')
