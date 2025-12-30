@@ -8,5 +8,6 @@ class Bot_configurations:
             data =  json.load(f)
             self.token = data["token"]
             self.chat_id_default = data["chat_id_default"]
+            self.group_id_default = data["group_id_default"]
 
 
