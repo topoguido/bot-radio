@@ -4,16 +4,12 @@
     "password": "Callefalsa123"
   },
 
-  "wlan_com": {
-    "mac_sensortx": "8ece4ee97325"
-  },
-
   "device_conf": {
-    "reset_delay": 3
+    "reset_delay": 5
   },
 
   "update_params": {
-    "status": true,
+    "status": false,
     "user": "topoguido",
     "repo": "bot-radio",
     "branch": "main",

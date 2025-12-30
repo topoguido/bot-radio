@@ -47,8 +47,8 @@ estructura:
 
 {
   "wifi_config": {
-    "ssid": "DEEPFAKE",
-    "password": "Callefalsa123"
+    "ssid": "",
+    "password": ""
   },
 
   "wlan_com": {
@@ -64,7 +64,7 @@ estructura:
     "user": "topoguido",
     "repo": "bot-radio",
     "branch": "main",
-    "files": ["boot.py", "main.py", "hardware.py", "utelegram.py"],
+    "files": ["boot.py", "main.py", "hardware.py", "utelegram.py", "Bot_configurations.py", "Configurations.py", "config.json"],
     "working_dir": "Maestro"
   },
 

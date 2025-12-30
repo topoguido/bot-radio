@@ -16,7 +16,7 @@ class sensor:
     def get_hum(self):
         return self.sensor_temp.humidity()
     
-class rele:
+class releDif:
     def __init__(self):
         self.rele = Pin(2, Pin.OUT)
 
@@ -25,6 +25,23 @@ class rele:
         sleep(0.5)
         self.rele.value(0)
         return True
+    
+class releContac:
+    def __init__(self):
+        self.rele = Pin(4, Pin.OUT)
+        #self.rele.value(0)
+
+    def on(self):
+        self.rele.value(1)
+        return True
+    
+    def off(self):
+        self.rele.value(0)
+        return True
+    
+    def status(self):
+        return self.rele.value()
+        
         
     
     

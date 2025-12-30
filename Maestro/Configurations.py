@@ -20,7 +20,6 @@ class Configurations:
                 self.update_working_dir = data["update_params"]["working_dir"]
 
             if type == "main":
-                self.mac_sensortx = data["wlan_com"]["mac_sensortx"]
                 self.reset_delay = data["device_conf"]["reset_delay"]
 
 
