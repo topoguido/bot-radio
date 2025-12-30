@@ -32,11 +32,11 @@ class releContac:
         #self.rele.value(0)
 
     def on(self):
-        self.rele.value(0)
+        self.rele.value(1)
         return True
     
     def off(self):
-        self.rele.value(1)
+        self.rele.value(0)
         return True
     
     def status(self):

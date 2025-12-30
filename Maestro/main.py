@@ -8,7 +8,8 @@ from Configurations import Configurations
 configs = Configurations("main")
 
 print('Iniciando bot')
-bot = utelegram.ubot(bool(configs.debug))
+bot = utelegram.ubot(configs.debug)
+print(f'Estado de debug: {configs.debug}')
 bot.saluda()
 releDif = hardware.releDif() # relé utilizado para hacer saltar al diferencial
 releContac = hardware.releContac() # relé utilizado para accionar el contactor de 220V
@@ -29,9 +30,9 @@ while True:
             # Estado de la red de 220V
             print(f'estado: {releContac.status()}')
             if not releContac.status():
-                status = "Conectado"
+                status = "Energia desconectada"
             elif releContac.status():
-                status = "No conectado"
+                status = "Energía conectada"
             
             bot.send(bot.chat_id, f'Estado de la red de 220V: {status}')
             
@@ -48,11 +49,11 @@ while True:
         elif bot.command == "/apagar":
             #Acciona contactor que releva la red de 220V
             print("Apagando la radio")
-            if not releContac.status():
+            if releContac.status():
                 bot.send(bot.chat_id, "Apagando la radio")
                 releContac.off()
                 time.sleep(0.5)
-                if releContac.status():
+                if not releContac.status():
                     bot.send(bot.chat_id, "Se ha apagado la radio")
                 else:
                     bot.send(bot.chat_id, "Parece que no lo he logrado")
@@ -65,11 +66,11 @@ while True:
         elif bot.command == "/encender":
             #Acciona contactor que conecta la red de 220V
             print("Encendiendo la radio")
-            if releContac.status():
+            if not releContac.status():
                 bot.send(bot.chat_id, "Encendiendo la radio")
                 releContac.on()
                 time.sleep(0.5)
-                if not releContac.status():
+                if releContac.status():
                     bot.send(bot.chat_id, "Se ha encendido la radio")
                 else:
                     bot.send(bot.chat_id, "Parece que no lo he logrado")
