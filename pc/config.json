@@ -1,0 +1,12 @@
+{
+  "update_params": {
+    "status": false,
+    "user": "topoguido",
+    "repo": "bot-radio",
+    "branch": "dev",
+    "files": ["mqtt_broker.py","senko_pc.py","config.py", "config.json"],
+    "working_dir": "pc"
+  }
+
+}
+
