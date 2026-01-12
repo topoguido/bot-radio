@@ -23,8 +23,8 @@ releContac = hardware.releContac() # relé utilizado para accionar el contactor 
 sensor_st = hardware.sensor()  # sensor del estudio
 
 while True:
-    print('bot en escucha')
     if wlan.isconnected():
+        print('bot en escucha')
         if bot.read_once():
 
              # Analiza el comando recibido y responde
@@ -33,8 +33,10 @@ while True:
 
             elif bot.command == '/estado':
                 # Obtiene los valores de temperatura y humedad del sensor cableado (estudio)
-                sensor_st.update_values()
-                bot.send(bot.chat_id, f'Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%')
+                if sensor_st.update_values():
+                    bot.send(bot.chat_id, f'Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%')
+                else:
+                    bot.send(bot.chat_id, 'No puedo obtener los datos del sensor')
                 # Estado de la red de 220V
                 print(f'estado: {releContac.status()}')
                 if not releContac.status():
@@ -94,6 +96,7 @@ while True:
                 bot.send(bot.chat_id, f'Ok, voy a reiniciarme en {delay} segundos.')
                 time.sleep(delay)
                 reset()
-
+    else:
+        print('Sin internet')
     time.sleep(3)
     gc.collect()
