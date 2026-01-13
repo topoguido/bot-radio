@@ -3,7 +3,7 @@
     "status": true,
     "user": "topoguido",
     "repo": "bot-radio",
-    "branch": "dev-mqtt-senko-pc",
+    "branch": "main",
     "files": [
       "main.py", 
       "mqtt_broker.py", 
