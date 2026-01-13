@@ -3,7 +3,7 @@ import json
 class Configs:
     def __init__(self):
 
-        with open("pc/config.json", "r") as f:
+        with open("config.json", "r") as f:
             data =  json.load(f)
             self._status = data["update_params"]["status"]
             self._user = data["update_params"]["user"]

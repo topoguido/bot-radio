@@ -1,6 +1,6 @@
 {
   "update_params": {
-    "status": false,
+    "status": true,
     "user": "topoguido",
     "repo": "bot-radio",
     "branch": "dev-mqtt-senko-pc",
