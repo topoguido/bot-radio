@@ -1,2 +1,4 @@
 Maestro/bot_config.json
 .idea/*
+__pycache__*
+.vscode
