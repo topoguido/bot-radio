@@ -15,15 +15,16 @@ class ubot:
         self.chat_name = ''
         self.debug = debug
         self.message_offset = self.get_msg_id()
-        self.commands = self.getCommands()
-        print(f'Lista de comandos: {self.commands}')
+        self.commands = None
+        self.greeting = False
+        
        
     def getCommands(self):
         commands = {}
         try:
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             if self.debug: print(f'URL: {self.url}')
-            response = urequests.get(self.url + '/getMyCommands', headers=headers, timeout=20)
+            response = urequests.get(self.url + '/getMyCommands', headers=headers)
             if response.status_code == 200:
                 response_json = response.json()
                 if 'result' in response_json:
@@ -31,6 +32,7 @@ class ubot:
                         command = '/' + item['command']
                         desc = item['description']
                         commands[command] = desc
+                        self.commands = commands
                     return commands    
             else:
                 print(f"Error HTTP: {response.status_code}")
@@ -44,7 +46,7 @@ class ubot:
             print(f"Error inesperado: {e}")
             return None
         finally:
-            response.close()
+            pass
 
     def reply_ping(self, chat_id):
         if self.debug: print('Respondiendo al ping')
@@ -63,14 +65,19 @@ class ubot:
             response = urequests.post(self.url + '/sendMessage', json=data, headers=headers)
             response.close()
             return True
-        except:
+        except OSError as e:
+            print('Metodo bot.send: ', e)
             return False
+        finally:
+            response.close()
+            pass
 
     def read_once(self):
         messages = self.get_messages()
+        print('metodo read_once: ', messages)
         if messages:
             if self.debug: print('Mensajes entrantes')
-            if self.message_offset==0:
+            if self.message_offset == 0:
                 self.message_offset = messages[-1]['update_id']
                 if self.debug: print(f'MSG_ID: {self.message_offset}')
                 return self.message_handler(messages[-1])
@@ -91,12 +98,14 @@ class ubot:
         self.query_updates = {
             'offset': new_offset,
             'limit': 1,
-            'timeout': 30,
+            'timeout': 5,
             'allowed_updates': ['message']}
         try:
-            update_messages = urequests.post(self.url + '/getUpdates', json=self.query_updates).json() 
+            print('Haciendo get')
+            update_messages = urequests.get(self.url + '/getUpdates', json=self.query_updates).json()
+            print('Finalizando get')
             if 'result' in update_messages:
-                if self.debug: print(f'Metodo read_messages: {update_messages}')
+                if self.debug: print(f'Metodo get_messages: {update_messages}')
                 for item in update_messages['result']:
                     result.append(item)
             return result
@@ -105,6 +114,8 @@ class ubot:
         except (OSError):
             if self.debug: print("OSError: request timed out")
             return None
+        finally:
+            pass
 
     def message_handler(self, message):
         if 'text' in message['message']:
