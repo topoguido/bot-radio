@@ -38,9 +38,15 @@ estructura:
 {
     "token": "",
     "chat_id_default": ""
+    "group_id_default": ""
 }
 
+token = token del bot provisto por telegram
+chat_id_default = Es el id del chat con el cual se quiere operar el bot
+group_id_default = Idem, pero de grupos. En caso de que quiera agregarse al bot a un grupo.
 
+Una manera de obtener los id es hacer pruebas haciendo un post a la api de telegram con postman por ejemplo. Ver la doc de telegram acerca de como hacer un request.
+--------------------------------------------------------------------------------
 
 archivo: config.json
 estructura:
