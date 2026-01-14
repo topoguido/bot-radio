@@ -9,12 +9,21 @@
   },
 
   "update_params": {
-    "status": true,
+    "status": false,
     "user": "topoguido",
     "repo": "bot-radio",
     "branch": "main",
-    "files": ["boot.py", "main.py", "hardware.py", "utelegram.py", "Bot_configurations.py", "Configurations.py", "config.json"],
+    "files": ["boot.py", "main.py", "hardware.py", "utelegram.py", "Bot_configurations.py", "Configurations.py", "config.json", "mqtt_manager.py"],
     "working_dir": "Maestro"
+  },
+
+  "mqtt_conf": {
+    "server": "192.168.2.108",
+    "port": 1883,
+    "client_id": "esp32",
+    "topic_cmd": "pc/pc-auto/cmd",
+    "topic_status": "pc/pc-auto/status",
+    "topic_resp": "pc/pc-auto/resp"
   },
 
   "debug": true

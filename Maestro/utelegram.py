@@ -101,18 +101,17 @@ class ubot:
             'timeout': 5,
             'allowed_updates': ['message']}
         try:
-            print('Haciendo get')
+            print('get_messages: Haciendo get')
             update_messages = urequests.get(self.url + '/getUpdates', json=self.query_updates).json()
-            print('Finalizando get')
+            print('get_messages: Finalizando get')
             if 'result' in update_messages:
-                if self.debug: print(f'Metodo get_messages: {update_messages}')
                 for item in update_messages['result']:
                     result.append(item)
             return result
         except (ValueError):
             return None
         except (OSError):
-            if self.debug: print("OSError: request timed out")
+            print("OSError: request timed out")
             return None
         finally:
             pass

@@ -22,7 +22,7 @@ def main():
         else:
             print("soft al dia")
 
-    listener = Mqtt_listener(broker="localhost",client_id="pc-auto")
+    listener = Mqtt_listener(server="localhost",client_id="emiliano-desktop")
     listener.start()
 
 

@@ -22,5 +22,12 @@ class Configurations:
             if type == "main":
                 self.reset_delay = data["device_conf"]["reset_delay"]
 
+                self.server = data["mqtt_conf"]["server"]
+                self.port = data["mqtt_conf"]["port"]
+                self.client_id = data["mqtt_conf"]["client_id"].encode()
+                self.topic_cmd = data["mqtt_conf"]["topic_cmd"].encode()
+                self.topic_status = data["mqtt_conf"]["topic_status"].encode()
+                self.topic_resp  = data["mqtt_conf"]["topic_resp"].encode()
+
 
 
