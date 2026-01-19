@@ -7,7 +7,6 @@ class ubot:
     def __init__(self, debug):
         self.config = Bot_configurations()
         self.url = 'https://api.telegram.org/bot' + self.config.token
-        self.default_handler = None
         self.command = None
         self.commandOK = False
         self.chat_id = ''
@@ -63,18 +62,20 @@ class ubot:
         try:
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             response = urequests.post(self.url + '/sendMessage', json=data, headers=headers)
+            if response.status_code == 200:
+                print(f"Mensaje enviado: {data['text']}")
             response.close()
             return True
         except OSError as e:
             print('Metodo bot.send: ', e)
             return False
         finally:
-            response.close()
             pass
 
     def read_once(self):
         messages = self.get_messages()
-        print('metodo read_once: ', messages)
+        if self.debug: 
+            print('metodo read_once: ', messages)
         if messages:
             if self.debug: print('Mensajes entrantes')
             if self.message_offset == 0:
@@ -90,24 +91,30 @@ class ubot:
 
     def get_messages(self, offset=None):
         result = []
-        if offset:
+        update_messages = {}
+        if offset is not None :
             new_offset = offset
         else:
             new_offset = self.message_offset + 1
 
-        self.query_updates = {
-            'offset': new_offset,
-            'limit': 1,
-            'timeout': 5,
-            'allowed_updates': ['message']}
+        params = [
+            'offset={}'.format(new_offset),
+            'limit=1',
+            'timeout=5',
+            'allowed_updates=message'
+        ]
+
         try:
-            print('Haciendo get')
-            update_messages = urequests.get(self.url + '/getUpdates', json=self.query_updates).json()
-            print('Finalizando get')
-            if 'result' in update_messages:
-                if self.debug: print(f'Metodo get_messages: {update_messages}')
-                for item in update_messages['result']:
-                    result.append(item)
+            url = self.url + '/getUpdates?' + '&'.join(params)
+            if self.debug: print(f'Haciendo get: {url}')
+            response = urequests.get(url)
+            if response.status_code == 200:
+                update_messages = response.json()
+                if 'result' in update_messages:
+                    if self.debug: print(f'Metodo get_messages: {update_messages}')
+                    for item in update_messages['result']:
+                        result.append(item)
+            response.close()
             return result
         except (ValueError):
             return None

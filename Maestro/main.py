@@ -102,5 +102,8 @@ while True:
                     reset()
     else:
         print('Sin internet')
+
+    print('Limpiando memoria')
     time.sleep(3)
     gc.collect()
+    print(f'Memoria: {gc.mem_free()}')
