@@ -13,13 +13,14 @@ class ubot:
         self.chat_username = ''
         self.chat_name = ''
         self.debug = debug
-        self.message_offset = self.get_msg_id()
+        self.message_offset = None
         self.commands = None
         self.greeting = False
         
        
     def getCommands(self):
         commands = {}
+        response = None
         try:
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             if self.debug: print(f'URL: {self.url}')
@@ -45,6 +46,8 @@ class ubot:
             print(f"Error inesperado: {e}")
             return None
         finally:
+            if response is not None:
+                response.close()
             pass
 
     def reply_ping(self, chat_id):
@@ -58,18 +61,20 @@ class ubot:
     
       
     def send(self, chat_id, text):
+        response = None
         data = {'chat_id': chat_id, 'text': text}
         try:
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             response = urequests.post(self.url + '/sendMessage', json=data, headers=headers)
             if response.status_code == 200:
                 print(f"Mensaje enviado: {data['text']}")
-            response.close()
             return True
         except OSError as e:
             print('Metodo bot.send: ', e)
             return False
         finally:
+            if response is not None:
+                response.close()
             pass
 
     def read_once(self):
@@ -91,6 +96,7 @@ class ubot:
 
     def get_messages(self, offset=None):
         result = []
+        response = None
         update_messages = {}
         if offset is not None :
             new_offset = offset
@@ -114,7 +120,6 @@ class ubot:
                     if self.debug: print(f'Metodo get_messages: {update_messages}')
                     for item in update_messages['result']:
                         result.append(item)
-            response.close()
             return result
         except (ValueError):
             return None
@@ -122,35 +127,52 @@ class ubot:
             if self.debug: print("OSError: request timed out")
             return None
         finally:
+            if response is not None:
+                response.close()
             pass
 
     def message_handler(self, message):
-        if 'text' in message['message']:
-            parts = message['message']['text'].split('@')[0]
-            self.update_temp(self.message_offset )
-            if 'entities' in message['message']:
-                for entity in message['message']['entities']:
-                    if 'type' in entity and entity['type'] == 'bot_command':
-                        if parts in self.commands:
-                            if self.debug: print(f'Comando recibido: {parts}')
-                            self.command = parts
-                            self.commandOK = True
+        msg = message.get('message')
+        if not msg:
+            return False
 
-                            if message['message']['chat']['type'] == "private":
-                                self.chat_id = message['message']['chat']['id']
-                                self.chat_username = message['message']['chat']['username']
-                                self.chat_name = message['message']['chat']['first_name']
-                            elif message['message']['chat']['type'] in ["group", "supergroup"]:
-                                self.chat_id = message['message']['chat']['id']
-                                self.chat_name = message['message']['from']['first_name']
-                                
-                            return True
+        text = msg.get('text')
+        if not text:
+            return False
+        
+        parts = text.split('@')[0]
+        self.update_temp(self.message_offset )
+        entities = msg.get('entities', [])
+        if not entities:
+            return False
+        
+        for entity in entities:
+            if 'type' in entity and entity.get('type') == 'bot_command':
+                if parts in self.commands:
+                    if self.debug: print(f'Comando recibido: {parts}')
+                    self.command = parts
+                    self.commandOK = True
 
-                        else:
-                            self.commandOK = False
-                            return False
-            else:
-                print(f'Es un mensaje normal con el texto: {parts}')
+                    chat = msg.get('chat', {})
+                    from_user = msg.get('from', {})
+
+                    if chat.get('type') == "private":
+                        self.chat_id = chat.get('id', '')
+                        self.chat_username = chat.get('username','')
+                        self.chat_name = chat.get('first_name','')
+                    
+                    elif chat.get('type') in ["group", "supergroup"]:
+                        self.chat_id = chat.get('id', '')
+                        self.chat_name = from_user.get('first_name', '')
+                        self.chat_username = from_user.get('username', '')
+                        
+                    return True
+
+                else:
+                    self.commandOK = False
+                    return False
+        
+        print(f'Es un mensaje normal con el texto: {parts}')
 
     def update_temp(self, id_msg):
         if self.debug: print(f'Metodo update_temp(id={id_msg})')
@@ -171,24 +193,27 @@ class ubot:
             with open("temp.json", "r") as f:
                 temp = json.load(f)
                 if self.debug: print(f'Metodo get_msg_id() - archivo existente, datos: {temp}')
-      
+                self.message_offset = temp["ultimo_id_msg"]
+
         except (OSError, ValueError) as e:
             if self.debug:
                 print(f'Excepcion: {e}')
                 print(f'Metodo get_msg_id() - Archivo no existe. Recuperando ultimo mensaje de telegram')
             messages =  self.get_messages(offset = -1)
-            if self.debug: print(f'Mensaje {messages}')
-            if len(messages) > 0:
-                id = int(messages[0]['update_id'])
+            if messages is not None:
+                if self.debug: print(f'Mensaje {messages}')
+                
+                if len(messages) > 0:
+                    id_msg = int(messages[0]['update_id'])
+                else:
+                    id_msg = 1
+                
+                if self.debug: print(f'El id capturado es: {id_msg}')
+                var = {"ultimo_id_msg": id_msg}
+                if self.debug: print(f'json a escribir {var}')
+                with open("temp.json", "w") as f:
+                    json.dump(var, f)
+                self.message_offset =  id_msg
             else:
-                id = 1
-               
-            if self.debug: print(f'El id capturado es: {id}')
-            var = {"ultimo_id_msg": id}
-            if self.debug: print(f'json a escribir {var}')
-            with open("temp.json", "w") as f:
-                json.dump(var, f)
-            return id
-
-        return temp["ultimo_id_msg"]
+                self.message_offset = 1
 
