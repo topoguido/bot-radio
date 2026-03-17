@@ -217,3 +217,7 @@ class ubot:
             else:
                 self.message_offset = 1
 
+    
+        
+
+

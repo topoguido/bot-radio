@@ -25,13 +25,13 @@ while True:
                 bot.getCommands()
                 print(f'Lista de comandos: {bot.commands}')
             else:
+                if bot.message_offset is None:
+                    bot.get_msg_id()
+
                 if not bot.greeting:
                     bot.saluda()
                     bot.greeting = True
                 
-                if bot.message_offset is None:
-                    bot.get_msg_id()
-
                 print('bot en escucha')
                 if bot.read_once():
 
@@ -105,7 +105,16 @@ while True:
                         time.sleep(delay)
                         reset()
         else:
-            print('Sin internet')
+            print('Sin internet, reconectando')
+            
+            while not wlan.isconnected():
+                wlan.connect(configs.wifi_ssid, configs.wifi_password)
+                if wlan.isconnected():
+                    print(f'Se ha recuperado la conexion: {wlan.ipconfig("addr4")}')
+                else:
+                    time.sleep(5)
+
+
     except Exception as e:
         print('Error en loop principal:', e)
         gc.collect()
