@@ -9,7 +9,7 @@
   },
 
   "update_params": {
-    "status": false,
+    "status": true,
     "user": "topoguido",
     "repo": "bot-radio",
     "branch": "main",
