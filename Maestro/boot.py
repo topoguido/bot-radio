@@ -9,7 +9,7 @@ configs = Configurations("boot")
 wlan = network.WLAN(network.WLAN.IF_STA)
 if not wlan.isconnected():
     wlan.active(True)
-    wlan.config(channel=8, pm=wlan.PM_NONE)
+    wlan.config(pm=wlan.PM_NONE)
     wlan.connect(configs.wifi_ssid, configs.wifi_password)
     wlan_mac = wlan.config("mac")
     print(f'Mi MAC es: {ubinascii.hexlify(wlan_mac).decode()}')
