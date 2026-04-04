@@ -13,7 +13,8 @@
     "user": "topoguido",
     "repo": "bot-radio",
     "branch": "main",
-    "files": ["boot.py", "main.py", "hardware.py", "utelegram.py", "Bot_configurations.py", "Configurations.py", "config.json"],
+    "files": ["boot.py", "main.py", "hardware.py", "utelegram.py", "Bot_configurations.py", 
+              "Configurations.py", "config.json", "mylib.py"],
     "working_dir": "Maestro"
   },
 
