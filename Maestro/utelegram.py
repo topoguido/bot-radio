@@ -56,8 +56,8 @@ class ubot:
     
     def saluda(self):
         if self.debug: print('Saludando')
-        ##self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
-        self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
+        self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
+        #self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
     
       
     def send(self, chat_id, text):
@@ -65,13 +65,17 @@ class ubot:
         data = {'chat_id': chat_id, 'text': text}
         try:
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-            response = urequests.post(self.url + '/sendMessage', json=data, headers=headers)
+            response = urequests.post(self.url + '/sendMessage', json=data, headers=headers, timeout=5)
             if response.status_code == 200:
                 print(f"Mensaje enviado: {data['text']}")
-            return True
+                return True
+            else:
+                print(f"Metodo send no puede enviar: {response.status_code}")
+                return False
         except OSError as e:
             print('Metodo bot.send: ', e)
             return False
+        
         finally:
             if response is not None:
                 response.close()
@@ -217,7 +221,9 @@ class ubot:
             else:
                 self.message_offset = 1
 
-    
-        
-
-
+    def test_connection(self):
+        response = urequests.get(self.url + '/getMe', timeout=5)
+        if response.status_code == 200:
+            return True
+        else:
+            return False
