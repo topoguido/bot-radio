@@ -21,6 +21,8 @@ class Configurations:
 
             if type == "main":
                 self.reset_delay = data["device_conf"]["reset_delay"]
+                self.wifi_ssid = data["wifi_config"]["ssid"]
+                self.wifi_password = data["wifi_config"]["password"]
 
 
 

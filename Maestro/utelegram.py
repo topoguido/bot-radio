@@ -56,8 +56,8 @@ class ubot:
     
     def saluda(self):
         if self.debug: print('Saludando')
-        ##self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
-        self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
+        self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
+        #self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
     
       
     def send(self, chat_id, text):
@@ -70,8 +70,9 @@ class ubot:
                 print(f"Mensaje enviado: {data['text']}")
                 return True
             else:
+                print(f"Metodo send no puede enviar: {response.status_code}")
                 return False
-        except (OSError, ConnectionError) as e:
+        except OSError as e:
             print('Metodo bot.send: ', e)
             return False
         

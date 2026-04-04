@@ -5,6 +5,7 @@ import ntptime
 import gc
 import hardware
 import network
+import mylib
 from Configurations import Configurations
 
 configs = Configurations("main")
@@ -28,13 +29,13 @@ while True:
                 bot.getCommands()
                 print(f'Lista de comandos: {bot.commands}')
             else:
+                if bot.message_offset is None:
+                    bot.get_msg_id()
+
                 if not bot.greeting:
                     bot.saluda()
                     bot.greeting = True
                 
-                if bot.message_offset is None:
-                    bot.get_msg_id()
-
                 print('bot en escucha')
                 if bot.read_once():
 
@@ -46,10 +47,10 @@ while True:
                         msg = ""
                         # Obtiene los valores de temperatura y humedad del sensor cableado (estudio)
                         if sensor_st.update_values():
-                            msg = "Temperatura: " + sensor_st.get_temp()+ "° - Humedad: " + sensor_st.get_hum() + "%\n"
+                            msg = f"Temperatura: {sensor_st.get_temp()}° \nHumedad: {sensor_st.get_hum()}%\n"
                             #bot.send(bot.chat_id, f'Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%')
                         else:
-                            msg = 'No puedo obtener los datos del sensor'
+                            msg = 'No puedo obtener los datos del sensor\n'
                             #bot.send(bot.chat_id, 'No puedo obtener los datos del sensor')
                         # Estado de la red de 220V
                         estado_rele = releContac.status()
@@ -58,26 +59,13 @@ while True:
                             status = "Desconectado"
                         else:
                             status = "Conectado"
-                        msg = msg + "Suministro 220V: " + status + '\n'
-
-                        t = time.localtime(time.time() + UTC_OFFSET)
-                        datetime = "{:02d}/{:02d}/{:04d} {:02d}:{:02d}:{:02d}".format(
-                            t[2],  # dia
-                            t[1],  # mes
-                            t[0],  # anio
-                            t[3],  # hora
-                            t[4],  # minuto
-                            t[5]   # segundo
-                        )
-
-                        msg = msg + datetime
+                        msg = msg + "Suministro: " + status + '\n'
+                        msg = msg + mylib.formatTime(time, UTC_OFFSET)
                         #bot.send(bot.chat_id, f'Suministro 220V: {status}')
                         if not bot.send(bot.chat_id, msg):
-                            #Vuelve a intentar.
-                            wlan.disconect()
-                            time.sleep(3)
-                            wlan.connect()
-                        
+                            print("Timeout de respuesta a estado")
+                            print("Desconectando wifi")
+                            wlan.disconnect()
                         
                     elif bot.command == '/cortar':
                         # se activa relé que pone a tierra el vivo de la red de 220V.
@@ -96,15 +84,21 @@ while True:
                             releContac.off()
                             time.sleep(0.5)
                             if not releContac.status():
-                                bot.send(bot.chat_id, "Se ha apagado la radio")
+                                msg = "Se ha apagado la radio"
+                                #bot.send(bot.chat_id, "Se ha apagado la radio")
                             else:
-                                bot.send(bot.chat_id, "Parece que no lo he logrado")
+                                msg = "Parece que no lo he logrado"
+                                #bot.send(bot.chat_id, "Parece que no lo he logrado")
 
+                            if not bot.send(bot.chat_id, msg):
+                                print("Timeout de respuesta a apagar")
+                                print("Desconectando wifi")
+                                wlan.disconect()
+                                
                         else:
                             bot.send(bot.chat_id, "Ya está apagada")
 
-                        
-
+ 
                     elif bot.command == "/encender":
                         #Acciona contactor que conecta la red de 220V
                         print("Encendiendo la radio")
@@ -113,9 +107,16 @@ while True:
                             releContac.on()
                             time.sleep(0.5)
                             if releContac.status():
-                                bot.send(bot.chat_id, "Se ha encendido la radio")
+                                msg = "Se ha encendido la radio"
+                                #bot.send(bot.chat_id, "Se ha encendido la radio")
                             else:
-                                bot.send(bot.chat_id, "Parece que no lo he logrado")
+                                msg = "Parece que no lo he logrado"
+                                #bot.send(bot.chat_id, "Parece que no lo he logrado")
+                            
+                            if not bot.send(bot.chat_id, msg):
+                                print("Timeout de respuesta a encender")
+                                print ("Desconectando wifi")
+                                wlan.disconect()
 
                         else:
                             bot.send(bot.chat_id, "Ya está encendida")
@@ -129,7 +130,16 @@ while True:
                         time.sleep(delay)
                         reset()
         else:
-            print('Sin internet')
+            print('Sin internet, reconectando')
+            
+            while not wlan.isconnected():
+                wlan.connect(configs.wifi_ssid, configs.wifi_password)
+                if wlan.isconnected():
+                    print(f'Se ha recuperado la conexion: {wlan.ipconfig("addr4")}')
+                else:
+                    time.sleep(5)
+
+
     except Exception as e:
         print('Error en loop principal:', e)
         gc.collect()
