@@ -1,14 +1,18 @@
 from machine import reset
 import utelegram
 import time
+import ntptime
 import gc
 import hardware
 import network
+import mylib
 from Configurations import Configurations
 
 configs = Configurations("main")
 wlan = network.WLAN(network.WLAN.IF_STA)
 
+ntptime.settime()
+UTC_OFFSET = -3 * 3600  # -3 horas en segundos
 print('Iniciando bot')
 bot = utelegram.ubot(configs.debug)
 print(f'Estado de debug: {configs.debug}')
@@ -40,20 +44,28 @@ while True:
                         bot.reply_ping(bot.chat_id)
 
                     elif bot.command == '/estado':
+                        msg = ""
                         # Obtiene los valores de temperatura y humedad del sensor cableado (estudio)
                         if sensor_st.update_values():
-                            bot.send(bot.chat_id, f'Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%')
+                            msg = f"Temperatura: {sensor_st.get_temp()}° \nHumedad: {sensor_st.get_hum()}%\n"
+                            #bot.send(bot.chat_id, f'Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%')
                         else:
-                            bot.send(bot.chat_id, 'No puedo obtener los datos del sensor')
+                            msg = 'No puedo obtener los datos del sensor\n'
+                            #bot.send(bot.chat_id, 'No puedo obtener los datos del sensor')
                         # Estado de la red de 220V
-                        print(f'estado: {releContac.status()}')
-                        if not releContac.status():
-                            status = "Energia desconectada"
-                        elif releContac.status():
-                            status = "Energía conectada"
-                        
-                        bot.send(bot.chat_id, f'Estado de la red de 220V: {status}')
-                        
+                        estado_rele = releContac.status()
+                        print(f'estado: {estado_rele}')
+                        if not estado_rele:
+                            status = "Desconectado"
+                        else:
+                            status = "Conectado"
+                        msg = msg + "Suministro: " + status + '\n'
+                        msg = msg + mylib.formatTime(time, UTC_OFFSET)
+                        #bot.send(bot.chat_id, f'Suministro 220V: {status}')
+                        if not bot.send(bot.chat_id, msg):
+                            print("Timeout de respuesta a estado")
+                            print("Desconectando wifi")
+                            wlan.disconnect()
                         
                     elif bot.command == '/cortar':
                         # se activa relé que pone a tierra el vivo de la red de 220V.
@@ -72,15 +84,21 @@ while True:
                             releContac.off()
                             time.sleep(0.5)
                             if not releContac.status():
-                                bot.send(bot.chat_id, "Se ha apagado la radio")
+                                msg = "Se ha apagado la radio"
+                                #bot.send(bot.chat_id, "Se ha apagado la radio")
                             else:
-                                bot.send(bot.chat_id, "Parece que no lo he logrado")
+                                msg = "Parece que no lo he logrado"
+                                #bot.send(bot.chat_id, "Parece que no lo he logrado")
 
+                            if not bot.send(bot.chat_id, msg):
+                                print("Timeout de respuesta a apagar")
+                                print("Desconectando wifi")
+                                wlan.disconect()
+                                
                         else:
                             bot.send(bot.chat_id, "Ya está apagada")
 
-                        
-
+ 
                     elif bot.command == "/encender":
                         #Acciona contactor que conecta la red de 220V
                         print("Encendiendo la radio")
@@ -89,9 +107,16 @@ while True:
                             releContac.on()
                             time.sleep(0.5)
                             if releContac.status():
-                                bot.send(bot.chat_id, "Se ha encendido la radio")
+                                msg = "Se ha encendido la radio"
+                                #bot.send(bot.chat_id, "Se ha encendido la radio")
                             else:
-                                bot.send(bot.chat_id, "Parece que no lo he logrado")
+                                msg = "Parece que no lo he logrado"
+                                #bot.send(bot.chat_id, "Parece que no lo he logrado")
+                            
+                            if not bot.send(bot.chat_id, msg):
+                                print("Timeout de respuesta a encender")
+                                print ("Desconectando wifi")
+                                wlan.disconect()
 
                         else:
                             bot.send(bot.chat_id, "Ya está encendida")
@@ -124,3 +149,5 @@ while True:
     time.sleep(3)
     gc.collect()
     print(f'Memoria: {gc.mem_free()}')
+
+
