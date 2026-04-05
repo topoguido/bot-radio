@@ -35,6 +35,7 @@ class ubot:
                         self.commands = commands
                     return commands    
             else:
+                response.close()
                 print(f"Error HTTP: {response.status_code}")
                 return None    
         except (ValueError):
@@ -79,7 +80,6 @@ class ubot:
         finally:
             if response is not None:
                 response.close()
-            pass
 
     def read_once(self):
         messages = self.get_messages()
@@ -117,7 +117,7 @@ class ubot:
         try:
             url = self.url + '/getUpdates?' + '&'.join(params)
             if self.debug: print(f'Haciendo get: {url}')
-            response = urequests.get(url)
+            response = urequests.get(url, timeout=8)
             if response.status_code == 200:
                 update_messages = response.json()
                 if 'result' in update_messages:
@@ -133,7 +133,7 @@ class ubot:
         finally:
             if response is not None:
                 response.close()
-            pass
+
 
     def message_handler(self, message):
         msg = message.get('message')
@@ -222,8 +222,15 @@ class ubot:
                 self.message_offset = 1
 
     def test_connection(self):
-        response = urequests.get(self.url + '/getMe', timeout=5)
-        if response.status_code == 200:
-            return True
-        else:
+        response = None
+        try:
+            response = urequests.get(self.url + '/getMe', timeout=5)
+            if response.status_code == 200:
+                return True
+            else:
+                return False
+        except Exception:
             return False
+        finally:
+            if response is not None:
+                response.close()
