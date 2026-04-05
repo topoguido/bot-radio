@@ -9,3 +9,4 @@ def formatTime(time, offset):
         t[5]   # segundo
     )
     return datetime
+
