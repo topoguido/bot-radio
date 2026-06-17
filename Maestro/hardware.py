@@ -12,6 +12,7 @@ class sensor:
     def update_values(self):
         try:
             self.sensor_temp.measure()
+            sleep(0.5)
             self._temp = self.sensor_temp.temperature()
             self._hum  = self.sensor_temp.humidity()
             return True
