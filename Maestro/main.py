@@ -22,7 +22,11 @@ mqtt = MqttManager(
 )
 
 ntptime.settime()
+
 UTC_OFFSET = -3 * 3600  # -3 horas en segundos
+check_internet_flag = True
+time_flag = False
+
 print('Iniciando bot')
 bot = utelegram.ubot(configs.debug)
 print(f'Estado de debug: {configs.debug}')
@@ -44,6 +48,10 @@ while True:
     try:
         if wlan.isconnected():
             
+            if not time_flag:
+                ntptime.settime()
+                time_flag = True
+
             if bot.commands is None:
                 bot.getCommands()
                 print(f'Lista de comandos: {bot.commands}')
@@ -143,7 +151,7 @@ while True:
                             if not bot.send(bot.chat_id, msg):
                                 print("Timeout de respuesta a apagar")
                                 print("Desconectando wifi")
-                                wlan.disconect()
+                                wlan.disconnect()
                                 
                         else:
                             bot.send(bot.chat_id, "Ya está apagada")
@@ -166,7 +174,7 @@ while True:
                             if not bot.send(bot.chat_id, msg):
                                 print("Timeout de respuesta a encender")
                                 print ("Desconectando wifi")
-                                wlan.disconect()
+                                wlan.disconnect()
 
                         else:
                             bot.send(bot.chat_id, "Ya está encendida")
@@ -188,16 +196,28 @@ while True:
                     print(f'Se ha recuperado la conexion: {wlan.ipconfig("addr4")}')
                 else:
                     time.sleep(5)
+    
+        print('Limpiando memoria')
+        time.sleep(3)
+        gc.collect()
+        print(f'Memoria: {gc.mem_free()}')
+        t = time.localtime(time.time() + UTC_OFFSET)
+        if t[4] == 0 and t[5] < 10 and check_internet_flag:
+            check_internet_flag = False
+            if bot.test_connection():
+                print("Check de internet: OK")
+                pass
+            else:
+                print("Check de internet: Error")
+                wlan.disconnect()
 
-
+        elif t[4] != 0:
+            check_internet_flag = True
+    
     except Exception as e:
         print('Error en loop principal:', e)
         gc.collect()
         time.sleep(3)
 
-    print('Limpiando memoria')
-    time.sleep(3)
-    gc.collect()
-    print(f'Memoria: {gc.mem_free()}')
-
+    
 
