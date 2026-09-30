@@ -28,6 +28,11 @@
     "topic_resp": "pc/pc-auto/resp"
   },
 
+  "batt_conf":{
+    "Vmin": 11.4,
+    "Vmax": 14.3
+  },
+
   "debug": true
 }
 

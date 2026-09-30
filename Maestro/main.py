@@ -25,6 +25,9 @@ UTC_OFFSET = -3 * 3600  # -3 horas en segundos
 check_internet_flag = True
 time_flag = False
 
+BATTERY_CHECK_INTERVAL_MS = 2 * 60 * 1000
+last_battery_check = None
+
 print('Iniciando bot')
 bot = utelegram.ubot(configs.debug)
 print(f'Estado de debug: {configs.debug}')
@@ -34,6 +37,9 @@ releContac = hardware.releContac() # relé utilizado para accionar el contactor 
 sensor_st = hardware.sensor()  # sensor del estudio
 AC_sensor = hardware.ACSensor() #sensores de tension AC aguas arriba y abajo del relé principal
 DC_sensor = hardware.DCSensor() # sensor de tension DC de la bateria
+cargadorBat = hardware.releCarga(configs.batt_Vmin,
+                                 configs.batt_Vmax, 
+                                 configs.debug) # Relé que activa el cargador de bateria
 
 if wlan.isconnected() and configs.mqtt_enabled:
     try:
@@ -62,6 +68,16 @@ while True:
                 if not bot.greeting:
                     bot.saluda()
                     bot.greeting = True
+
+                now = time.ticks_ms()
+
+                if ( last_battery_check is None
+                    or time.ticks_diff(now, last_battery_check) >= BATTERY_CHECK_INTERVAL_MS ):
+                    if configs.debug:
+                        print("Chequeando bateria")
+
+                    cargadorBat.checkCarga(DC_sensor.getStatus())
+                    last_battery_check = now
                 
                 print('bot en escucha')
                 if bot.read_once():
@@ -92,17 +108,17 @@ while True:
 
                         
                         if hayTension_AC_In:
-                            rele_in_status = "Conectada"
+                            rele_in_status = "Conectado"
                         else:
-                            rele_in_status = "Desconectada"
+                            rele_in_status = "Desconectado"
 
                         if configs.debug:
                             print(f"Energía pilar: {rele_in_status}")
 
                         if hayTension_AC_Out:
-                            rele_out_status = "Conectada"
+                            rele_out_status = "Conectado"
                         else:
-                            rele_out_status = "Desconectada" 
+                            rele_out_status = "Desconectado" 
 
                         if configs.debug:
                             print("Energía interna: " + rele_out_status)  
@@ -110,7 +126,11 @@ while True:
                         msg = msg + "Suministro pilar: " + rele_in_status + '\n'
                         msg = msg + "Suministro interno: " + rele_out_status + '\n'
                         msg += "Tensión AC: {:.1f} V\n".format(tension_AC_Out)
-                        msg += "Tensión DC: {:.1f} V\n".format(DC_sensor.getStatus())
+                        msg += "Tensión batería: {:.1f} V\n".format(DC_sensor.getStatus())
+                        
+                        # Estado de la bateria
+                        msg += "Cargador bateria: " + {0: "Apagado", 1: "Encendido"}.get(cargadorBat.status(), "Estado desconocido") + "\n"
+                        
                         if configs.debug:
                             print(msg)
 
@@ -132,14 +152,15 @@ while True:
                         # se activa relé que pone a tierra el vivo de la red de 220V.
                         print('Ejecutando apagado de emergencia')
                         bot.send(bot.chat_id, "Ok, vamos a cortar la energía")
-                        resp = mqtt.request(b"shutdown", timeout_ms=5000)
-                        if configs.debug: print(f'Respuesta de la computadora: {resp}')
-                        if not mqtt.pc_online:
-                            bot.send(bot.chat_id, "La computadora se está apagando. Se espera 10 segundos")        
-                            time.sleep(10)
-                        else:
-                            bot.send(bot.chat_id, "No hay respuesta de la computadora")        
-                            time.sleep(1)
+                        if configs.mqtt_enabled and mqtt.pc_online:
+                            resp = mqtt.request(b"shutdown", timeout_ms=5000)
+                            if configs.debug: print(f'Respuesta de la computadora: {resp}')
+                            if not mqtt.pc_online:
+                                bot.send(bot.chat_id, "La computadora se está apagando. Se espera 10 segundos")        
+                                time.sleep(10)
+                            else:
+                                bot.send(bot.chat_id, "No hay respuesta de la computadora")        
+                                time.sleep(1)
 
                         if releDif.shutdown():
                             bot.send(bot.chat_id, "Se ha cortado la energía")
