@@ -6,7 +6,7 @@ from math import sqrt
 class sensor:
     
     def __init__(self):
-        self.sensor_temp = dht.DHT11(Pin(0, Pin.IN))
+        self.sensor_temp = dht.DHT11(Pin(6, Pin.IN))
         self._temp = None
         self._hum = None
     
@@ -25,7 +25,6 @@ class sensor:
         
     def get_temp(self):
             return self._temp
-        
     
     def get_hum(self):
             return self._hum
@@ -33,7 +32,7 @@ class sensor:
     
 class releDif:
     def __init__(self):
-        self.rele = Pin(10, Pin.OUT)
+        self.rele = Pin(7, Pin.OUT)
 
     def shutdown(self):
         self.rele.value(1)
@@ -53,6 +52,50 @@ class releContac:
     
     def status(self):
         return self.rele.value()
+
+
+class releCarga:
+     def __init__(self, Vmin, Vmax, debug):
+        self.rele = Pin(2, Pin.OUT, value=0)
+        self.Vmax = Vmax
+        self.Vmin = Vmin
+        self.debug = debug
+     
+     def on(self):
+         self.rele.value(1)
+         if self.debug:
+             print("Cargador encendido")
+         return True
+
+     def off(self):
+          self.rele.value(0)
+          if self.debug:
+            print("Cargador apagado")
+          return True
+    
+     def status(self):
+        if self.debug:
+            print(f"Estado cargador: {self.rele.value()}")
+        return self.rele.value()
+
+     def checkCarga(self, value):
+        if value >= (self.Vmax):
+             #apaga
+            if self.debug:
+                print(f"Tension bateria: {value}")
+                print("Apagando cargador")
+            self.off()
+            return False
+        
+        if value < self.Vmin:
+            # enciende
+            if self.debug:
+                print(f"Tension bateria: {value}")
+                print("Encendiendo cargador")
+            self.on()
+            return True
+         
+          
         
         
 class ACSensor:
