@@ -21,8 +21,6 @@ mqtt = MqttManager(
     topic_resp=configs.topic_resp
 )
 
-ntptime.settime()
-
 UTC_OFFSET = -3 * 3600  # -3 horas en segundos
 check_internet_flag = True
 time_flag = False
@@ -34,8 +32,10 @@ print(f'Estado de debug: {configs.debug}')
 releDif = hardware.releDif() # relé utilizado para hacer saltar al diferencial
 releContac = hardware.releContac() # relé utilizado para accionar el contactor de 220V
 sensor_st = hardware.sensor()  # sensor del estudio
+AC_sensor = hardware.ACSensor() #sensores de tension AC aguas arriba y abajo del relé principal
+DC_sensor = hardware.DCSensor() # sensor de tension DC de la bateria
 
-if wlan.isconnected():
+if wlan.isconnected() and configs.mqtt_enabled:
     try:
         if mqtt.connect():
             print("MQTT conectado")
@@ -75,35 +75,58 @@ while True:
                         # Obtiene los valores de temperatura y humedad del sensor cableado (estudio)
                         if sensor_st.update_values():
                             msg = f"Temperatura: {sensor_st.get_temp()}° \nHumedad: {sensor_st.get_hum()}%\n"
-                            #bot.send(bot.chat_id, f'Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%')
+                            if configs.debug:
+                                print(f"Temperatura: {sensor_st.get_temp()}°")
                         else:
                             msg = 'No puedo obtener los datos del sensor\n'
-                            #bot.send(bot.chat_id, 'No puedo obtener los datos del sensor')
                         
                         # Estado de la red de 220V
-                        estado_rele = releContac.status()
-                        print(f'estado: {estado_rele}')
-                        if not estado_rele:
-                            rele_status = "Desconectado"
-                        else:
-                            rele_status = "Conectado"
-                        
-                        # estado de la computadora
-                        resp = mqtt.request(b"status", timeout_ms=5000)
-                        if configs.debug: print(f'Respuesta de la computadora: {resp}')
-                        if resp == "encendida":
-                            pc_status = "Encendida"
-                        else:
-                            pc_status = "Apagada"
+                        tension_AC_In, hayTension_AC_In = AC_sensor.getStatusAC_In()
+                        tension_AC_Out, hayTension_AC_Out = AC_sensor.getStatusAC_Out()
 
-                        msg = msg + "Suministro: " + rele_status + '\n'
-                        msh = msg + "Computadora " + pc_status + '\n'
-                        msg = msg + mylib.formatTime(time, UTC_OFFSET)
-                        #bot.send(bot.chat_id, f'Suministro 220V: {status}')
+                        if configs.debug:
+                            print(
+                                    f"estado: AC In: {tension_AC_In:.0f} V - "
+                                    f"AC Out: {tension_AC_Out:.0f} V"
+                                )
+
+                        
+                        if hayTension_AC_In:
+                            rele_in_status = "Conectada"
+                        else:
+                            rele_in_status = "Desconectada"
+
+                        if configs.debug:
+                            print(f"Energía pilar: {rele_in_status}")
+
+                        if hayTension_AC_Out:
+                            rele_out_status = "Conectada"
+                        else:
+                            rele_out_status = "Desconectada" 
+
+                        if configs.debug:
+                            print("Energía interna: " + rele_out_status)  
+
+                        msg = msg + "Suministro pilar: " + rele_in_status + '\n'
+                        msg = msg + "Suministro interno: " + rele_out_status + '\n'
+                        msg += "Tensión AC: {:.1f} V\n".format(tension_AC_Out)
+                        msg += "Tensión DC: {:.1f} V\n".format(DC_sensor.getStatus())
+                        if configs.debug:
+                            print(msg)
+
+                        # estado de la computadora
+                        if configs.mqtt_enabled and mqtt.pc_online:
+                            resp = mqtt.request(b"status", timeout_ms=5000)
+                            if configs.debug: print(f'Respuesta de la computadora: {resp}')
+                            if resp == "encendida":
+                                pc_status = "Encendida"
+                            else:
+                                pc_status = "Apagada"
+                            msg = msg + "Computadora " + pc_status + '\n'
+                            msg = msg + mylib.formatTime(time, UTC_OFFSET)
+
                         if not bot.send(bot.chat_id, msg):
-                            print("Timeout de respuesta a estado")
-                            print("Desconectando wifi")
-                            wlan.disconnect()
+                            print("Error de respuesta a estado")
                         
                     elif bot.command == '/cortar':
                         # se activa relé que pone a tierra el vivo de la red de 220V.
@@ -128,55 +151,57 @@ while True:
                         print("Apagando la radio")
 
                         # se notifica a la pc que tiene que apagar
-                        resp = mqtt.request(b"shutdown", timeout_ms=5000)
-                        if configs.debug: print(f'Respuesta de la computadora: {resp}')
-                        if resp == "apagando":
-                            bot.send(bot.chat_id, "La computadora se está apagando. Se espera 10 segundos")        
-                            time.sleep(10)
-                        else:
-                            bot.send(bot.chat_id, "No hay respuesta de la computadora")  
-                            time.sleep(1)
+                        if configs.mqtt_enabled and mqtt.pc_online:
+                            resp = mqtt.request(b"shutdown", timeout_ms=5000)
+                            if configs.debug: print(f'Respuesta de la computadora: {resp}')
+                            if resp == "apagando":
+                                bot.send(bot.chat_id, "La computadora se está apagando. Se espera 10 segundos")        
+                                time.sleep(10)
 
-                        if releContac.status():
+                        print("Consultando datos AC")
+                        _, AC_in_status = AC_sensor.getStatusAC_In()
+                        _, AC_out_status = AC_sensor.getStatusAC_Out()
+                        
+                        
+                        if AC_in_status and AC_out_status:
+                            # Se detecta tension arriba y abajo del relé.
                             bot.send(bot.chat_id, "Apagando la radio")
-                            releContac.off()
-                            time.sleep(0.5)
-                            if not releContac.status():
+                            releContac.changeStatus()
+
+                            print("Consultando sensor salida AC")
+                            _, AC_out_status = AC_sensor.getStatusAC_Out()
+                            print(f"Respuesta sensor: {AC_out_status}")
+                            if not AC_out_status:
                                 msg = "Se ha apagado la radio"
-                                #bot.send(bot.chat_id, "Se ha apagado la radio")
+                                bot.send(bot.chat_id, msg)
                             else:
                                 msg = "No he logrado apagar la radio"
-                                #bot.send(bot.chat_id, "Parece que no lo he logrado")
+                                bot.send(bot.chat_id, msg)
 
-                            if not bot.send(bot.chat_id, msg):
-                                print("Timeout de respuesta a apagar")
-                                print("Desconectando wifi")
-                                wlan.disconnect()
                                 
-                        else:
+                        elif AC_in_status and not AC_out_status:
                             bot.send(bot.chat_id, "Ya está apagada")
 
  
                     elif bot.command == "/encender":
                         #Acciona contactor que conecta la red de 220V
+                        _, AC_in_status = AC_sensor.getStatusAC_In()
+                        _, AC_out_status = AC_sensor.getStatusAC_Out()
                         print("Encendiendo la radio")
-                        if not releContac.status():
+                        if not AC_out_status:
                             bot.send(bot.chat_id, "Encendiendo la radio")
-                            releContac.on()
+                            releContac.changeStatus()
                             time.sleep(0.5)
-                            if releContac.status():
+                            _, AC_out_status = AC_sensor.getStatusAC_Out()
+                            if AC_out_status:
                                 msg = "Se ha encendido la radio"
-                                #bot.send(bot.chat_id, "Se ha encendido la radio")
+                                bot.send(bot.chat_id, msg)
                             else:
                                 msg = "Parece que no lo he logrado"
-                                #bot.send(bot.chat_id, "Parece que no lo he logrado")
-                            
-                            if not bot.send(bot.chat_id, msg):
-                                print("Timeout de respuesta a encender")
-                                print ("Desconectando wifi")
-                                wlan.disconnect()
+                                bot.send(bot.chat_id, "Parece que no lo he logrado")
 
-                        else:
+
+                        elif AC_in_status and AC_out_status:
                             bot.send(bot.chat_id, "Ya está encendida")
 
 

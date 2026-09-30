@@ -24,6 +24,7 @@ class Configurations:
                 self.wifi_ssid = data["wifi_config"]["ssid"]
                 self.wifi_password = data["wifi_config"]["password"]
 
+                self.mqtt_enabled = data["mqtt_conf"]["enabled"]
                 self.server = data["mqtt_conf"]["server"]
                 self.port = data["mqtt_conf"]["port"]
                 self.client_id = data["mqtt_conf"]["client_id"].encode()

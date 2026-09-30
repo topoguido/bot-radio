@@ -57,21 +57,33 @@ class ubot:
     
     def saluda(self):
         if self.debug: print('Saludando')
-        #self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
-        self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
+        self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
+        #self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
     
       
     def send(self, chat_id, text):
         response = None
         data = {'chat_id': chat_id, 'text': text}
         try:
-            headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-            response = urequests.post(self.url + '/sendMessage', json=data, headers=headers, timeout=5)
+            payload = json.dumps(data).encode("utf-8")
+            headers = {
+                "Content-Type": "application/json; charset=utf-8",
+                "Accept": "application/json",
+            }
+
+            response = urequests.post(
+                self.url + "/sendMessage",
+                data=payload,
+                headers=headers,
+                timeout=5,
+            )
+
             if response.status_code == 200:
                 print(f"Mensaje enviado: {data['text']}")
                 return True
             else:
                 print(f"Metodo send no puede enviar: {response.status_code}")
+                print("Telegram:", response.text)
                 return False
         except OSError as e:
             print('Metodo bot.send: ', e)

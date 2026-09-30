@@ -1,7 +1,7 @@
 {
   "wifi_config": {
-    "ssid": "ESCUELA",
-    "password": "laplazadelaschacras2025"
+    "ssid": "CALESITA",
+    "password": "3empanadas"
   },
 
   "device_conf": {
@@ -19,6 +19,7 @@
   },
 
   "mqtt_conf": {
+    "enabled": false,
     "server": "192.168.2.108",
     "port": 1883,
     "client_id": "esp32",
