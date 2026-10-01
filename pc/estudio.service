@@ -1,0 +1,19 @@
+[Unit]
+Description=Estudio MQTT Listener
+After=network.target
+
+[Service]
+Type=simple
+User=root
+
+WorkingDirectory=/home/estudio/Sistema/bot-radio/pc/
+ExecStart=/usr/bin/python3 /home/estudio/Sistema/bot-radio/pc/main.py
+Restart=on-failure
+RestartSec=5
+# Variables de entorno opcionales
+Environment=PYTHONUNBUFFERED=1
+
+
+
+[Install]
+WantedBy=multi-user.target

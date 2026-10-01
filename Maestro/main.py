@@ -28,6 +28,9 @@ time_flag = False
 BATTERY_CHECK_INTERVAL_MS = 2 * 60 * 1000
 last_battery_check = None
 
+MQTT_RETRY_INTERVAL_MS = 30 * 1000
+last_mqtt_retry = None
+
 print('Iniciando bot')
 bot = utelegram.ubot(configs.debug)
 print(f'Estado de debug: {configs.debug}')
@@ -41,18 +44,22 @@ cargadorBat = hardware.releCarga(configs.batt_Vmin,
                                  configs.batt_Vmax, 
                                  configs.debug) # Relé que activa el cargador de bateria
 
-if wlan.isconnected() and configs.mqtt_enabled:
-    try:
-        if mqtt.connect():
-            print("MQTT conectado")
-        else:
-            print("MQTT sin conexion")
-    except Exception as e:
-       print("Error MQTT:", repr(e))
-
 while True:
     try:
         if wlan.isconnected():
+            if configs.mqtt_enabled:
+                if mqtt.connected:
+                    mqtt.loop()
+                else:
+                    now = time.ticks_ms()
+
+                    if (
+                        last_mqtt_retry is None
+                        or time.ticks_diff(now, last_mqtt_retry)
+                            >= MQTT_RETRY_INTERVAL_MS
+                    ):
+                        last_mqtt_retry = now
+                        mqtt.connect()
             
             if not time_flag:
                 ntptime.settime()
@@ -85,6 +92,17 @@ while True:
                     # Analiza el comando recibido y responde
                     if bot.command == '/ping':
                         bot.reply_ping(bot.chat_id)
+                        # estado de la computadora
+                        print(f"configs.mqtt_enabled: {configs.mqtt_enabled}")
+                        print(f"mqtt.pc_online: {mqtt.pc_online}")
+                        if configs.mqtt_enabled and mqtt.pc_online:
+                            resp = mqtt.request(b"ping", timeout_ms=5000)
+                            if configs.debug: print(f'Respuesta de la computadora: {resp}')
+                            if resp == "pong":
+                                pc_status = "Encendida"
+                            else:
+                                pc_status = "Sin respuesta"
+                            bot.send(bot.chat_id, "Computadora: " + pc_status)
 
                     elif bot.command == '/estado':
                         msg = ""
@@ -135,14 +153,14 @@ while True:
                             print(msg)
 
                         # estado de la computadora
-                        if configs.mqtt_enabled and mqtt.pc_online:
+                        if configs.mqtt_enabled:
                             resp = mqtt.request(b"status", timeout_ms=5000)
                             if configs.debug: print(f'Respuesta de la computadora: {resp}')
                             if resp == "encendida":
                                 pc_status = "Encendida"
                             else:
                                 pc_status = "Apagada"
-                            msg = msg + "Computadora " + pc_status + '\n'
+                            msg = msg + "Computadora: " + pc_status + '\n'
                             msg = msg + mylib.formatTime(time, UTC_OFFSET)
 
                         if not bot.send(bot.chat_id, msg):
@@ -155,11 +173,11 @@ while True:
                         if configs.mqtt_enabled and mqtt.pc_online:
                             resp = mqtt.request(b"shutdown", timeout_ms=5000)
                             if configs.debug: print(f'Respuesta de la computadora: {resp}')
-                            if not mqtt.pc_online:
-                                bot.send(bot.chat_id, "La computadora se está apagando. Se espera 10 segundos")        
-                                time.sleep(10)
+                            if resp == "apagando":
+                                bot.send(bot.chat_id, "La computadora se está apagando. Se espera 10 segundos")
+                                time.sleep(15)
                             else:
-                                bot.send(bot.chat_id, "No hay respuesta de la computadora")        
+                                bot.send(bot.chat_id, "No hay respuesta de la computadora")
                                 time.sleep(1)
 
                         if releDif.shutdown():
@@ -177,7 +195,7 @@ while True:
                             if configs.debug: print(f'Respuesta de la computadora: {resp}')
                             if resp == "apagando":
                                 bot.send(bot.chat_id, "La computadora se está apagando. Se espera 10 segundos")        
-                                time.sleep(10)
+                                time.sleep(15)
 
                         print("Consultando datos AC")
                         _, AC_in_status = AC_sensor.getStatusAC_In()
@@ -266,4 +284,3 @@ while True:
         time.sleep(3)
 
     
-
