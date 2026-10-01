@@ -117,7 +117,8 @@ Estos sensores van conectados a los circuitos 1 y 2. Los circuitos son divisores
 
 Circuito 1 (sensor arriba del relé principal)
 
-![]([](https://github.com/topoguido/bot-radio/blob/f8c10bb764e7a39946acb62062fb5c83bc03ccaa/Docs/Circuito-1.jpeg))
+![](https://github.com/topoguido/bot-radio/blob/f8c10bb764e7a39946acb62062fb5c83bc03ccaa/Docs/Circuito-1.jpeg)
+
 
 
 
