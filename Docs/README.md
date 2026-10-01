@@ -124,14 +124,14 @@ Circuito 1 (sensor arriba del relé principal)
 
 Circuito 2 (sensor debajo del relé principal)
 
-![](/home/emiliano/Proyectos/ESPduino/bot-radio/Docs/Circuito-2.jpeg)
+![](https://github.com/topoguido/bot-radio/blob/e0c907532d216c9e3f331c8ca5228afc92a11d51/Docs/Circuito-2.jpeg)
 
 Accionamiento del relé principal (contactor)
 Este relé es como un bi-estable o flip-flop. A diferencia de los relés comunes que necesitan mantener en HIGH el pin de señal, estos solo necesitan un pulso corto para cambiar de estado. En mi práctica resultó mejor hacer un circuito simulando un relé electronico para accionar este relé. El objetivo fue proteger al relé de los pequeños pulsos que se puedan generar en los pines del ESP32 cuando inicia. Esto estaba generando señales falsas y cambiando de posición el relé bi-estable.
 
 Circuito
 
-![](/home/emiliano/Proyectos/ESPduino/bot-radio/Docs/Circuito-3.png)
+![](https://github.com/topoguido/bot-radio/blob/e0c907532d216c9e3f331c8ca5228afc92a11d51/Docs/Circuito-3.png)
 
 Se trata de un transistor genérico (BC547, BC548, 2N3904). La base tiene conectadas dos resistencias, una de ellas de valor 4,7 KΩ va entre la base y el pin del ESP. La otra conecta la base a GND y es de valor 10 KΩ. El emisor se conecta directo al borne de señal del relé (borne negativo). El colector se conecta al otro borne del relé (borne positivo).
 
