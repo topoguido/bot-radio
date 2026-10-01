@@ -19,8 +19,8 @@
   },
 
   "mqtt_conf": {
-    "enabled": false,
-    "server": "192.168.2.108",
+    "enabled": true,
+    "server": "192.168.0.106",
     "port": 1883,
     "client_id": "esp32",
     "topic_cmd": "pc/pc-auto/cmd",
@@ -30,7 +30,7 @@
 
   "batt_conf":{
     "Vmin": 11.4,
-    "Vmax": 14.3
+    "Vmax": 14.2
   },
 
   "debug": true

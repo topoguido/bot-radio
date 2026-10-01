@@ -1,6 +1,6 @@
 {
   "update_params": {
-    "status": true,
+    "status": false,
     "user": "topoguido",
     "repo": "bot-radio",
     "branch": "main",
