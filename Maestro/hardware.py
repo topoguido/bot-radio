@@ -5,8 +5,8 @@ from math import sqrt
 
 class sensor:
     
-    def __init__(self):
-        self.sensor_temp = dht.DHT11(Pin(6, Pin.IN))
+    def __init__(self, pin, mode=Pin.IN):
+        self.sensor_temp = dht.DHT11(Pin(pin))
         self._temp = None
         self._hum = None
     
@@ -31,8 +31,8 @@ class sensor:
         
     
 class releDif:
-    def __init__(self):
-        self.rele = Pin(7, Pin.OUT)
+    def __init__(self, pin, mode=Pin.OUT):
+        self.rele = Pin(pin, mode)
 
     def shutdown(self):
         self.rele.value(1)
@@ -41,8 +41,8 @@ class releDif:
         return True
     
 class releContac:
-    def __init__(self):
-        self.rele = Pin(5, Pin.OUT, value=0)
+    def __init__(self, pin, mode=Pin.OUT):
+        self.rele = Pin(pin, mode)
 
     def changeStatus(self):
         self.rele.value(1)
@@ -55,8 +55,8 @@ class releContac:
 
 
 class releCarga:
-     def __init__(self, Vmin, Vmax, debug):
-        self.rele = Pin(2, Pin.OUT, value=0)
+     def __init__(self, Vmin, Vmax, debug, pin, mode=Pin.OUT):
+        self.rele = Pin(pin, mode, value=0)
         self.Vmax = Vmax
         self.Vmin = Vmin
         self.debug = debug
@@ -99,10 +99,10 @@ class releCarga:
         
         
 class ACSensor:
-    def __init__(self):
-          self.sensorIn = ADC(Pin(3))
+    def __init__(self, pinIn, pinOut, mode=Pin.IN):
+          self.sensorIn = ADC(Pin(pinIn))
           self.sensorIn.atten(ADC.ATTN_11DB)
-          self.sensorOut = ADC(Pin(4))
+          self.sensorOut = ADC(Pin(pinOut))
           self.sensorOut.atten(ADC.ATTN_11DB)
           self.umbralIn = 100
           self.umbralOut = 100
@@ -149,11 +149,11 @@ class ACSensor:
 
 class DCSensor:
      
-     def __init__(self):
-          self.sensorDC = ADC(Pin(1))
+     def __init__(self, pin, mode=Pin.IN):
+          self.sensorDC = ADC(Pin(pin))
           self.sensorDC.atten(ADC.ATTN_11DB)
           self.sensorDC.width(ADC.WIDTH_12BIT)
-          self.factor_divisor_dc = 5.0
+          self.factor_divisor_dc = 5
 
 
      def leer_tension_dc(self,adc, muestras=100):
