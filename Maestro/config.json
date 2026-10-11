@@ -19,7 +19,7 @@
   },
 
   "mqtt_conf": {
-    "enabled": true,
+    "enabled": false,
     "server": "192.168.0.106",
     "port": 1883,
     "client_id": "esp32",
@@ -31,6 +31,16 @@
   "batt_conf":{
     "Vmin": 11.4,
     "Vmax": 14.2
+  },
+
+  "peripherals":{
+    "sensorAC_IN_Pin": 34,
+    "sensorAC_OUT_Pin": 35,
+    "sensorDC_Pin": 36,
+    "sensorTH_Pin": 32,
+    "relayContact_Pin": 33,
+    "relayCharger_Pin": 19,
+    "relayDif_Pin": 18
   },
 
   "debug": true

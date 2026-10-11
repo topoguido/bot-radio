@@ -35,14 +35,21 @@ print('Iniciando bot')
 bot = utelegram.ubot(configs.debug)
 print(f'Estado de debug: {configs.debug}')
 
-releDif = hardware.releDif() # relé utilizado para hacer saltar al diferencial
-releContac = hardware.releContac() # relé utilizado para accionar el contactor de 220V
-sensor_st = hardware.sensor()  # sensor del estudio
-AC_sensor = hardware.ACSensor() #sensores de tension AC aguas arriba y abajo del relé principal
-DC_sensor = hardware.DCSensor() # sensor de tension DC de la bateria
+print("Rele diferencial")
+releDif = hardware.releDif(configs.relayDif_Pin) # relé utilizado para hacer saltar al diferencial
+print("Rele contactor")
+releContac = hardware.releContac(configs.relayContact_Pin) # relé utilizado para accionar el contactor de 220V
+print("Sensor temperatura")
+sensor_st = hardware.sensor(configs.sensorTH_Pin)  # sensor del estudio
+print("Sensor AC")
+AC_sensor = hardware.ACSensor(configs.sensorAC_IN_Pin, configs.sensorAC_OUT_Pin) #sensores de tension AC aguas arriba y abajo del relé principal
+print("Sensor DC")
+DC_sensor = hardware.DCSensor(configs.sensorDC_Pin) # sensor de tension DC de la bateria
+print("Rele cargador")
 cargadorBat = hardware.releCarga(configs.batt_Vmin,
                                  configs.batt_Vmax, 
-                                 configs.debug) # Relé que activa el cargador de bateria
+                                 configs.debug,
+                                 configs.relayCharger_Pin) # Relé que activa el cargador de bateria
 
 while True:
     try:
@@ -62,8 +69,13 @@ while True:
                         mqtt.connect()
             
             if not time_flag:
-                ntptime.settime()
-                time_flag = True
+                try:
+                    ntptime.host = "pool.ntp.org"
+                    ntptime.settime()
+                    time_flag = True
+                    print("Hora sincronizada")
+                except OSError as e:
+                    print("No se pudo sincronizar NTP:", repr(e))
 
             if bot.commands is None:
                 bot.getCommands()
@@ -80,10 +92,11 @@ while True:
 
                 if ( last_battery_check is None
                     or time.ticks_diff(now, last_battery_check) >= BATTERY_CHECK_INTERVAL_MS ):
+                    Vbat = DC_sensor.getStatus()
                     if configs.debug:
-                        print("Chequeando bateria")
+                        print(f"Chequeando bateria - Tensión: {Vbat}")
 
-                    cargadorBat.checkCarga(DC_sensor.getStatus())
+                    cargadorBat.checkCarga(Vbat)
                     last_battery_check = now
                 
                 print('bot en escucha')

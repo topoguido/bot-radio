@@ -35,5 +35,13 @@ class Configurations:
                 self.batt_Vmin = data["batt_conf"]["Vmin"]
                 self.batt_Vmax = data["batt_conf"]["Vmax"]
 
+                self.sensorAC_IN_Pin = data["peripherals"]["sensorAC_IN_Pin"]
+                self.sensorAC_OUT_Pin = data["peripherals"]["sensorAC_OUT_Pin"]
+                self.sensorDC_Pin = data["peripherals"]["sensorDC_Pin"]
+                self.sensorTH_Pin = data["peripherals"]["sensorTH_Pin"]
+                self.relayContact_Pin = data["peripherals"]["relayContact_Pin"]
+                self.relayCharger_Pin = data["peripherals"]["relayCharger_Pin"]
+                self.relayDif_Pin = data["peripherals"]["relayDif_Pin"]
+
 
 
