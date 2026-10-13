@@ -8,6 +8,7 @@ class Configurations:
             data =  json.load(f)
 
             self.debug = data["debug"]
+            self.logging_status = data["logging"]["enabled"]
 
             if type == "boot":
                 self.wifi_ssid = data["wifi_config"]["ssid"]
@@ -47,6 +48,3 @@ class Configurations:
                 self.SD_MOSI = data["peripherals"]["SD_MOSI"]
                 self.SD_MISO = data["peripherals"]["SD_MISO"]
                 self.SD_SCK = data["peripherals"]["SD_SCK"]
-                self.logging_status = data["logging"]["enabled"]
-
-

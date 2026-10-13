@@ -14,7 +14,7 @@
     "repo": "bot-radio",
     "branch": "main",
     "files": ["boot.py", "main.py", "hardware.py", "utelegram.py", "Bot_configurations.py", 
-              "Configurations.py", "config.json", "mylib.py", "mqtt_manager.py"],
+              "Configurations.py", "config.json", "mylib.py", "mqtt_manager.py", "logging.py"],
     "working_dir": "Maestro"
   },
 
@@ -52,4 +52,3 @@
 
   "debug": true
 }
-

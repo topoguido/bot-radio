@@ -1,5 +1,6 @@
-from machine import ADC, Pin, SPI, SDCard
+from machine import ADC, Pin, SDCard
 import dht
+import mylib
 from time import sleep, ticks_ms, ticks_diff, sleep_us
 from math import sqrt
 import uos
@@ -64,35 +65,33 @@ class releCarga:
      
      def on(self):
          self.rele.value(1)
-         if self.debug:
-             print("Cargador encendido")
+         mylib.log_print("Cargador encendido", level=mylib.DEBUG)
          return True
 
      def off(self):
           self.rele.value(0)
-          if self.debug:
-            print("Cargador apagado")
+          mylib.log_print("Cargador apagado", level=mylib.DEBUG)
           return True
     
      def status(self):
-        if self.debug:
-            print(f"Estado cargador: {self.rele.value()}")
+        mylib.log_print(
+            f"Estado cargador: {self.rele.value()}",
+            level=mylib.DEBUG,
+        )
         return self.rele.value()
 
      def checkCarga(self, value):
         if value >= (self.Vmax):
              #apaga
-            if self.debug:
-                print(f"Tension bateria: {value}")
-                print("Apagando cargador")
+            mylib.log_print(f"Tension bateria: {value}", level=mylib.DEBUG)
+            mylib.log_print("Apagando cargador", level=mylib.DEBUG)
             self.off()
             return False
         
         if value < self.Vmin:
             # enciende
-            if self.debug:
-                print(f"Tension bateria: {value}")
-                print("Encendiendo cargador")
+            mylib.log_print(f"Tension bateria: {value}", level=mylib.DEBUG)
+            mylib.log_print("Encendiendo cargador", level=mylib.DEBUG)
             self.on()
             return True
          
@@ -175,32 +174,35 @@ class DCSensor:
 
 class MySDCard:
     def __init__(self, cs_pin, mosi_pin, miso_pin, sck_pin):
-        self.cs = Pin(cs_pin, Pin.OUT)
-        self.mosi = Pin(mosi_pin, Pin.OUT)
-        self.miso = Pin(miso_pin, Pin.IN)
-        self.sck = Pin(sck_pin, Pin.OUT)
-        self.spi = None
+        self.cs = cs_pin
+        self.mosi = mosi_pin
+        self.miso = miso_pin
+        self.sck = sck_pin
         self.sd = None
 
     def init(self):
         try:
-            self.spi = SPI(1, baudrate=1000000, polarity=0, phase=0, sck=self.sck, mosi=self.mosi, miso=self.miso)
-            self.sd = SDCard(slot=2)
+            self.sd = SDCard(
+                slot=2,
+                cs=self.cs,
+                mosi=self.mosi,
+                miso=self.miso,
+                sck=self.sck,
+            )
             uos.mount(self.sd, "/sd")
             return True
         except Exception as e:
-            print("Error al inicializar la tarjeta SD:", e)
+            mylib.emergency_print("Error al inicializar la tarjeta SD:", e)
             return False
 
     def deinit(self):
         try:
-            import uos
             uos.umount("/sd")
-            if self.spi:
-                self.spi.deinit()
+            self.sd.deinit()
+            self.sd = None
             return True
         except Exception as e:
-            print("Error al desmontar la tarjeta SD:", e)
+            mylib.emergency_print("Error al desmontar la tarjeta SD:", e)
             return False
 
     def write_file(self, filename, data):
@@ -209,5 +211,5 @@ class MySDCard:
                 f.write(data + "\n")
             return True
         except Exception as e:
-            print("Error al escribir en el archivo:", e)
+            mylib.emergency_print("Error al escribir en el archivo:", e)
             return False

@@ -1,5 +1,6 @@
 import time
 import socket
+import mylib
 from umqtt.simple import MQTTClient
 
 class MqttManager:
@@ -36,7 +37,7 @@ class MqttManager:
 
     def _on_message(self, topic, msg):
         payload = msg.decode().strip()
-        print("MQTT recibido:", topic, payload)
+        mylib.log_print("MQTT recibido:", topic, payload, level=mylib.DEBUG)
 
         if topic == self.topic_status:
             self.last_status = payload
@@ -89,7 +90,7 @@ class MqttManager:
         self.pc_online = False
 
         if not self.broker_available(timeout_s=1):
-            print("Broker MQTT no disponible")
+            mylib.log_print("Broker MQTT no disponible", level=mylib.WARNING)
             return False
 
         try:
@@ -98,12 +99,17 @@ class MqttManager:
             self.client.subscribe(self.topic_status)
             self.connected = True
             self.flush(duration_ms=500)
-            print("MQTT conectado")
+            mylib.log_print("MQTT conectado")
             return True
         except Exception as e:
             self.connected = False
             self.pc_online = False
-            print("Error conectando MQTT:", repr(e))
+            mylib.log_print(
+                "Error conectando MQTT:",
+                repr(e),
+                level=mylib.ERROR,
+                exception=e,
+            )
 
             return False
 
@@ -143,7 +149,12 @@ class MqttManager:
         except Exception as e:
             self.connected = False
             self.pc_online = False
-            print("Error en peticion MQTT:", repr(e))
+            mylib.log_print(
+                "Error en peticion MQTT:",
+                repr(e),
+                level=mylib.ERROR,
+                exception=e,
+            )
             return None
 
 
@@ -160,5 +171,10 @@ class MqttManager:
         except Exception as e:
             self.connected = False
             self.pc_online = False
-            print("Error procesando MQTT:", repr(e))
+            mylib.log_print(
+                "Error procesando MQTT:",
+                repr(e),
+                level=mylib.ERROR,
+                exception=e,
+            )
             return False

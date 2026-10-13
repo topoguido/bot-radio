@@ -1,5 +1,5 @@
-import urequests
-import json
+import urequests, gc, json
+import mylib
 from Bot_configurations import Bot_configurations
 
 class ubot:
@@ -23,8 +23,18 @@ class ubot:
         response = None
         try:
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-            if self.debug: print(f'URL: {self.url}')
-            response = urequests.get(self.url + '/getMyCommands', headers=headers)
+            mylib.log_print(f"Get Commands {gc.mem_free()}", level=mylib.DEBUG)
+            import esp32
+            import micropython
+
+            gc.collect()
+
+            print("GC libre:", gc.mem_free())
+            print("GC usado:", gc.mem_alloc())
+            print("Heap IDF:", esp32.idf_heap_info(esp32.HEAP_DATA))
+            micropython.mem_info()
+            response = urequests.get(self.url + '/getMyCommands', headers=headers, timeout=25)
+            mylib.log_print(f"gc.mem_alloc(): {gc.mem_alloc()}", level=mylib.DEBUG)
             if response.status_code == 200:
                 response_json = response.json()
                 if 'result' in response_json:
@@ -36,15 +46,26 @@ class ubot:
                     return commands    
             else:
                 response.close()
-                print(f"Error HTTP: {response.status_code}")
+                mylib.log_print(
+                    f"Error HTTP: {response.status_code}",
+                    level=mylib.ERROR,
+                )
                 return None    
         except (ValueError):
             return None
-        except (OSError):
-            print("OSError: request timed out")
+        except (OSError) as e:
+            mylib.log_print(
+                "OSError: request timed out: " + str(e),
+                level=mylib.WARNING,
+                exception=e,
+            )
             return None
         except Exception as e:
-            print(f"Error inesperado: {e}")
+            mylib.log_print(
+                f"Error inesperado: {e}",
+                level=mylib.ERROR,
+                exception=e,
+            )
             return None
         finally:
             if response is not None:
@@ -52,11 +73,11 @@ class ubot:
             pass
 
     def reply_ping(self, chat_id):
-        if self.debug: print('Respondiendo al ping')
+        mylib.log_print('Respondiendo al ping', level=mylib.DEBUG)
         self.send(chat_id, 'pong')
     
     def saluda(self):
-        if self.debug: print('Saludando')
+        mylib.log_print('Saludando', level=mylib.DEBUG)
         self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
         #self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
     
@@ -79,14 +100,25 @@ class ubot:
             )
 
             if response.status_code == 200:
-                print(f"Mensaje enviado: {data['text']}")
+                mylib.log_print(
+                    f"Mensaje enviado: {data['text']}",
+                    level=mylib.DEBUG,
+                )
                 return True
             else:
-                print(f"Metodo send no puede enviar: {response.status_code}")
-                print("Telegram:", response.text)
+                mylib.log_print(
+                    f"Metodo send no puede enviar: {response.status_code}",
+                    level=mylib.ERROR,
+                )
+                mylib.log_print("Telegram:", response.text, level=mylib.ERROR)
                 return False
         except OSError as e:
-            print('Metodo bot.send: ', e)
+            mylib.log_print(
+                'Metodo bot.send:',
+                e,
+                level=mylib.ERROR,
+                exception=e,
+            )
             return False
         
         finally:
@@ -95,19 +127,21 @@ class ubot:
 
     def read_once(self):
         messages = self.get_messages()
-        if self.debug: 
-            print('metodo read_once: ', messages)
+        mylib.log_print('metodo read_once:', messages, level=mylib.DEBUG)
         if messages:
-            if self.debug: print('Mensajes entrantes')
+            mylib.log_print('Mensajes entrantes', level=mylib.DEBUG)
             if self.message_offset == 0:
                 self.message_offset = messages[-1]['update_id']
-                if self.debug: print(f'MSG_ID: {self.message_offset}')
+                mylib.log_print(f'MSG_ID: {self.message_offset}', level=mylib.DEBUG)
                 return self.message_handler(messages[-1])
             else:
                 for message in messages:
                     if message['update_id'] >= self.message_offset:
                         self.message_offset = message['update_id']
-                        if self.debug: print(f'MSG_ID: {self.message_offset}')
+                        mylib.log_print(
+                            f'MSG_ID: {self.message_offset}',
+                            level=mylib.DEBUG,
+                        )
                         return self.message_handler(message)
 
     def get_messages(self, offset=None):
@@ -128,19 +162,22 @@ class ubot:
 
         try:
             url = self.url + '/getUpdates?' + '&'.join(params)
-            if self.debug: print(f'Haciendo get: {url}')
+            mylib.log_print(f'Haciendo get: {url}', level=mylib.DEBUG)
             response = urequests.get(url, timeout=8)
             if response.status_code == 200:
                 update_messages = response.json()
                 if 'result' in update_messages:
-                    if self.debug: print(f'Metodo get_messages: {update_messages}')
+                    mylib.log_print(
+                        f'Metodo get_messages: {update_messages}',
+                        level=mylib.DEBUG,
+                    )
                     for item in update_messages['result']:
                         result.append(item)
             return result
         except (ValueError):
             return None
         except (OSError):
-            if self.debug: print("OSError: request timed out")
+            mylib.log_print("OSError: request timed out", level=mylib.DEBUG)
             return None
         finally:
             if response is not None:
@@ -165,7 +202,7 @@ class ubot:
         for entity in entities:
             if 'type' in entity and entity.get('type') == 'bot_command':
                 if parts in self.commands:
-                    if self.debug: print(f'Comando recibido: {parts}')
+                    mylib.log_print(f'Comando recibido: {parts}', level=mylib.DEBUG)
                     self.command = parts
                     self.commandOK = True
 
@@ -188,10 +225,10 @@ class ubot:
                     self.commandOK = False
                     return False
         
-        print(f'Es un mensaje normal con el texto: {parts}')
+        mylib.log_print(f'Es un mensaje normal con el texto: {parts}')
 
     def update_temp(self, id_msg):
-        if self.debug: print(f'Metodo update_temp(id={id_msg})')
+        mylib.log_print(f'Metodo update_temp(id={id_msg})', level=mylib.DEBUG)
         try:
             with open("temp.json", "r") as file:
                 data = json.load(file)
@@ -204,29 +241,34 @@ class ubot:
             json.dump(data, file)
     
     def get_msg_id(self):
-        if self.debug: print(f'Metodo get_msg_id()')
+        mylib.log_print('Metodo get_msg_id()', level=mylib.DEBUG)
         try:
             with open("temp.json", "r") as f:
                 temp = json.load(f)
-                if self.debug: print(f'Metodo get_msg_id() - archivo existente, datos: {temp}')
+                mylib.log_print(
+                    f'Metodo get_msg_id() - archivo existente, datos: {temp}',
+                    level=mylib.DEBUG,
+                )
                 self.message_offset = temp["ultimo_id_msg"]
 
         except (OSError, ValueError) as e:
-            if self.debug:
-                print(f'Excepcion: {e}')
-                print(f'Metodo get_msg_id() - Archivo no existe. Recuperando ultimo mensaje de telegram')
+            mylib.log_print(f'Excepcion: {e}', level=mylib.DEBUG)
+            mylib.log_print(
+                'Metodo get_msg_id() - Archivo no existe. Recuperando ultimo mensaje de telegram',
+                level=mylib.DEBUG,
+            )
             messages =  self.get_messages(offset = -1)
             if messages is not None:
-                if self.debug: print(f'Mensaje {messages}')
+                mylib.log_print(f'Mensaje {messages}', level=mylib.DEBUG)
                 
                 if len(messages) > 0:
                     id_msg = int(messages[0]['update_id'])
                 else:
                     id_msg = 1
                 
-                if self.debug: print(f'El id capturado es: {id_msg}')
+                mylib.log_print(f'El id capturado es: {id_msg}', level=mylib.DEBUG)
                 var = {"ultimo_id_msg": id_msg}
-                if self.debug: print(f'json a escribir {var}')
+                mylib.log_print(f'json a escribir {var}', level=mylib.DEBUG)
                 with open("temp.json", "w") as f:
                     json.dump(var, f)
                 self.message_offset =  id_msg
