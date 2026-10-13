@@ -173,7 +173,7 @@ class DCSensor:
      def getStatus(self):
         return self.leer_tension_dc(self.sensorDC)
 
-class SDCard:
+class MySDCard:
     def __init__(self, cs_pin, mosi_pin, miso_pin, sck_pin):
         self.cs = Pin(cs_pin, Pin.OUT)
         self.mosi = Pin(mosi_pin, Pin.OUT)
@@ -185,7 +185,7 @@ class SDCard:
     def init(self):
         try:
             self.spi = SPI(1, baudrate=1000000, polarity=0, phase=0, sck=self.sck, mosi=self.mosi, miso=self.miso)
-            self.sd = SDCard(self.spi, self.cs)
+            self.sd = SDCard(slot=2)
             uos.mount(self.sd, "/sd")
             return True
         except Exception as e:
