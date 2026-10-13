@@ -51,6 +51,8 @@ cargadorBat = hardware.releCarga(configs.batt_Vmin,
                                  configs.debug,
                                  configs.relayCharger_Pin) # Relé que activa el cargador de bateria
 
+sd = hardware.SDCard(configs.SD_CS, configs.SD_MOSI, configs.SD_MISO, configs.SD_SCK)
+
 while True:
     try:
         if wlan.isconnected():
