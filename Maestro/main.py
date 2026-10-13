@@ -1,11 +1,6 @@
 from machine import reset
-import utelegram
-import time
-import ntptime
-import gc
-import hardware
-import network
-import mylib
+import utelegram, hardware, mylib, logging
+import time, ntptime, gc, network
 from mqtt_manager import MqttManager
 from Configurations import Configurations
 
@@ -50,8 +45,9 @@ cargadorBat = hardware.releCarga(configs.batt_Vmin,
                                  configs.batt_Vmax, 
                                  configs.debug,
                                  configs.relayCharger_Pin) # Relé que activa el cargador de bateria
-
-sd = hardware.SDCard(configs.SD_CS, configs.SD_MOSI, configs.SD_MISO, configs.SD_SCK)
+print("Inicializando tarjeta SD")
+sd_obj = hardware.MySDCard(configs.SD_CS, configs.SD_MOSI, configs.SD_MISO, configs.SD_SCK)
+sd = sd_obj.init()
 
 while True:
     try:
