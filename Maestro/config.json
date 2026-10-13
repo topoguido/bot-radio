@@ -30,7 +30,7 @@
 
   "batt_conf":{
     "Vmin": 11.4,
-    "Vmax": 14.2
+    "Vmax": 14.0
   },
 
   "peripherals":{
@@ -39,8 +39,15 @@
     "sensorDC_Pin": 36,
     "sensorTH_Pin": 32,
     "relayContact_Pin": 33,
-    "relayCharger_Pin": 19,
-    "relayDif_Pin": 18
+    "relayCharger_Pin": 26,
+    "relayDif_Pin": 25,
+    "SD_CS":5,
+    "SD_MOSI":23,
+    "SD_MISO":19,
+    "SD_SCK":18
+  },
+  "logging":{
+    "enabled":true
   },
 
   "debug": true
