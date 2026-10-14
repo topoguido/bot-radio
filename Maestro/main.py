@@ -1,5 +1,5 @@
 from machine import reset
-import utelegram, hardware, mylib
+import mylib, sd_manager
 import time, ntptime, gc, network
 
 from Configurations import Configurations
@@ -29,7 +29,22 @@ last_battery_check = None
 MQTT_RETRY_INTERVAL_MS = 30 * 1000
 last_mqtt_retry = None
 
+
 mylib.log_print('Iniciando bot')
+sd = None
+if configs.logging_status:
+    mylib.log_print("Inicializando tarjeta SD")
+    sd = sd_manager.mount(
+        configs.SD_CS,
+        configs.SD_MOSI,
+        configs.SD_MISO,
+        configs.SD_SCK,
+    )
+    if sd is None:
+        mylib.disable_logging()
+
+import utelegram, hardware
+
 bot = utelegram.ubot(configs.debug)
 mylib.log_print(f'Estado de debug: {configs.debug}')
 
@@ -45,17 +60,9 @@ mylib.log_print("Sensor DC")
 DC_sensor = hardware.DCSensor(configs.sensorDC_Pin) # sensor de tension DC de la bateria
 mylib.log_print("Rele cargador")
 cargadorBat = hardware.releCarga(configs.batt_Vmin,
-                                 configs.batt_Vmax, 
+                                 configs.batt_Vmax,
                                  configs.debug,
                                  configs.relayCharger_Pin) # Relé que activa el cargador de bateria
-sd = None
-if configs.logging_status:
-    import logging
-    mylib.log_print("Inicializando tarjeta SD")
-    sd = hardware.MySDCard(configs.SD_CS, configs.SD_MOSI, configs.SD_MISO, configs.SD_SCK)
-    if not sd.init():
-        sd = None
-        mylib.disable_logging()
 
 while True:
     try:
@@ -80,15 +87,7 @@ while True:
                     ntptime.settime()
                     time_flag = True
                     if configs.logging_status and sd:
-                        logging.basicConfig(
-                            level=logging.INFO,
-                            filename="/sd",
-                            filemode="a",
-                            daily=True,
-                            utc_offset=UTC_OFFSET,
-                            format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
-                        )
-                        mylib.set_logger(logging.getLogger("bot-radio"))
+                        mylib.configure_logging("/sd", UTC_OFFSET)
                         mylib.log_print("Sistema iniciado")
                         mylib.log_print("Tarjeta SD montada")
                     mylib.log_print("Hora sincronizada por NTP")
