@@ -1,4 +1,4 @@
-import urequests, gc, json
+import urequests, json
 import mylib
 from Bot_configurations import Bot_configurations
 
@@ -23,18 +23,8 @@ class ubot:
         response = None
         try:
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-            mylib.log_print(f"Get Commands {gc.mem_free()}", level=mylib.DEBUG)
-            import esp32
-            import micropython
-
-            gc.collect()
-
-            print("GC libre:", gc.mem_free())
-            print("GC usado:", gc.mem_alloc())
-            print("Heap IDF:", esp32.idf_heap_info(esp32.HEAP_DATA))
-            micropython.mem_info()
+            mylib.log_print("Get Commands", level=mylib.DEBUG)
             response = urequests.get(self.url + '/getMyCommands', headers=headers, timeout=25)
-            mylib.log_print(f"gc.mem_alloc(): {gc.mem_alloc()}", level=mylib.DEBUG)
             if response.status_code == 200:
                 response_json = response.json()
                 if 'result' in response_json:
@@ -55,7 +45,7 @@ class ubot:
             return None
         except (OSError) as e:
             mylib.log_print(
-                "OSError: request timed out: " + str(e),
+                "OSError en getCommands: " + str(e),
                 level=mylib.WARNING,
                 exception=e,
             )
@@ -162,7 +152,7 @@ class ubot:
 
         try:
             url = self.url + '/getUpdates?' + '&'.join(params)
-            mylib.log_print(f'Haciendo get: {url}', level=mylib.DEBUG)
+            mylib.log_print('Haciendo getUpdates', level=mylib.DEBUG)
             response = urequests.get(url, timeout=8)
             if response.status_code == 200:
                 update_messages = response.json()
@@ -176,8 +166,11 @@ class ubot:
             return result
         except (ValueError):
             return None
-        except (OSError):
-            mylib.log_print("OSError: request timed out", level=mylib.DEBUG)
+        except (OSError) as e:
+            mylib.log_print(
+                "OSError en get_messages: " + str(e),
+                level=mylib.DEBUG,
+            )
             return None
         finally:
             if response is not None:

@@ -1,7 +1,6 @@
 from machine import reset
 import network
 import ubinascii
-import senko
 import mylib
 from Configurations import Configurations
 
@@ -21,14 +20,15 @@ if not wlan.isconnected():
     if wlan.isconnected():
         mylib.log_print(f'conectado a red con IP {wlan.ipconfig("addr4")}')
 
-        OTA = senko.Senko(user = configs.update_user,
-                          repo = configs.update_repo,
-                          branch = configs.update_branch, 
-                          files = configs.update_files,
-                          working_dir = configs.update_working_dir
-                          )
-        
         if configs.update_status:
+            import senko
+
+            OTA = senko.Senko(user = configs.update_user,
+                              repo = configs.update_repo,
+                              branch = configs.update_branch,
+                              files = configs.update_files,
+                              working_dir = configs.update_working_dir
+                              )
             if OTA.update():
                 mylib.log_print('Nueva version de soft')
                 reset()
