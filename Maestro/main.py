@@ -24,24 +24,21 @@ check_internet_flag = True
 time_flag = False
 
 BATTERY_CHECK_INTERVAL_MS = 2 * 60 * 1000
+BATTERY_LOG_INTERVAL_MS = 60 * 60 * 1000
 last_battery_check = None
+last_battery_log = None
 
 MQTT_RETRY_INTERVAL_MS = 30 * 1000
 last_mqtt_retry = None
 
+ntp_warning_logged = False
+sd_available_logged = False
+telegram_ready = False
+
 
 mylib.log_print('Iniciando bot')
-sd = None
 if configs.logging_status:
-    mylib.log_print("Inicializando tarjeta SD")
-    sd = sd_manager.mount(
-        configs.SD_CS,
-        configs.SD_MOSI,
-        configs.SD_MISO,
-        configs.SD_SCK,
-    )
-    if sd is None:
-        mylib.disable_logging()
+    mylib.log_print("Logging en tarjeta SD habilitado")
 
 import utelegram, hardware
 
@@ -63,6 +60,39 @@ cargadorBat = hardware.releCarga(configs.batt_Vmin,
                                  configs.batt_Vmax,
                                  configs.debug,
                                  configs.relayCharger_Pin) # Relé que activa el cargador de bateria
+
+
+def flush_logs():
+    global sd_available_logged
+
+    if not mylib.has_pending_logs():
+        return
+
+    sd = sd_manager.mount(
+        configs.SD_CS,
+        configs.SD_MOSI,
+        configs.SD_MISO,
+        configs.SD_SCK,
+    )
+    if sd is None:
+        mylib.disable_logging()
+        return
+
+    try:
+        if not sd_available_logged:
+            mylib.log_print("Tarjeta SD disponible para logging")
+            sd_available_logged = True
+
+        if not mylib.flush_logging():
+            mylib.disable_logging()
+    except Exception as error:
+        mylib.emergency_print("Error al vaciar logs en la tarjeta SD:", error)
+        mylib.disable_logging()
+    finally:
+        if not sd_manager.unmount(sd):
+            mylib.disable_logging()
+        gc.collect()
+
 
 while True:
     try:
@@ -86,39 +116,51 @@ while True:
                     ntptime.host = "pool.ntp.org"
                     ntptime.settime()
                     time_flag = True
-                    if configs.logging_status and sd:
+                    ntp_recovered = ntp_warning_logged
+                    ntp_warning_logged = False
+                    if configs.logging_status:
                         mylib.configure_logging("/sd", UTC_OFFSET)
                         mylib.log_print("Sistema iniciado")
-                        mylib.log_print("Tarjeta SD montada")
-                    mylib.log_print("Hora sincronizada por NTP")
+                    if ntp_recovered:
+                        mylib.log_print("Servicio NTP recuperado")
+                    else:
+                        mylib.log_print("Hora sincronizada por NTP")
                 except OSError as e:
-                    mylib.log_print(
-                        "No se pudo sincronizar NTP:",
-                        repr(e),
-                        level=mylib.WARNING,
-                        exception=e,
-                    )
+                    if not ntp_warning_logged:
+                        mylib.log_print(
+                            "No se pudo sincronizar NTP:",
+                            repr(e),
+                            level=mylib.WARNING,
+                            exception=e,
+                        )
+                        ntp_warning_logged = True
             gc.collect()
             if bot.commands is None:
-                bot.getCommands()
-                mylib.log_print(f'Lista de comandos: {bot.commands}')
+                commands = bot.getCommands()
+                if commands is not None:
+                    mylib.log_print(f'Lista de comandos: {commands}')
             else:
                 if bot.message_offset is None:
                     bot.get_msg_id()
 
                 if not bot.greeting:
-                    bot.saluda()
-                    bot.greeting = True
+                    bot.greeting = bot.saluda()
+                    if not bot.greeting:
+                        time.sleep(3)
+                        continue
 
                 now = time.ticks_ms()
 
                 if ( last_battery_check is None
                     or time.ticks_diff(now, last_battery_check) >= BATTERY_CHECK_INTERVAL_MS ):
                     Vbat = DC_sensor.getStatus()
-                    mylib.log_print(
-                        f"Chequeando bateria - Tensión: {Vbat}",
-                        level=mylib.DEBUG,
-                    )
+                    if (
+                        last_battery_log is None
+                        or time.ticks_diff(now, last_battery_log)
+                            >= BATTERY_LOG_INTERVAL_MS
+                    ):
+                        mylib.log_print(f"Tension de bateria: {Vbat} V")
+                        last_battery_log = now
 
                     previous_charger_status = cargadorBat.status()
                     charger_status = cargadorBat.checkCarga(Vbat)
@@ -131,38 +173,54 @@ while True:
                         )
                     last_battery_check = now
                 
-                mylib.log_print('bot en escucha', level=mylib.DEBUG)
-                if bot.read_once():
+                message_received = bot.read_once()
+                if bot.get_updates_failures >= 3:
+                    mylib.log_print(
+                        "Tres fallos consecutivos de Telegram; reconectando Wi-Fi",
+                        level=mylib.WARNING,
+                    )
+                    bot.get_updates_failures = 0
+                    wlan.disconnect()
+                    time.sleep(1)
+                    continue
+
+                if not bot.get_updates_failed:
+                    telegram_ready = True
+
+                if message_received:
 
                     # Analiza el comando recibido y responde
                     if bot.command == '/ping':
-                        bot.reply_ping(bot.chat_id)
+                        if bot.reply_ping(bot.chat_id):
+                            mylib.log_print("Respuesta al comando /ping enviada")
                         # estado de la computadora
                         mylib.log_print(
                             f"configs.mqtt_enabled: {configs.mqtt_enabled}",
                             level=mylib.DEBUG,
                         )
-                        mylib.log_print(
-                            f"mqtt.pc_online: {mqtt.pc_online}",
-                            level=mylib.DEBUG,
-                        )
-                        if configs.mqtt_enabled and mqtt.pc_online:
-                            resp = mqtt.request(b"ping", timeout_ms=5000)
-                            mylib.log_print(
-                                f'Respuesta de la computadora: {resp}',
-                                level=mylib.DEBUG,
-                            )
-                            if resp == "pong":
-                                pc_status = "Encendida"
-                            else:
-                                pc_status = "Sin respuesta"
-                            bot.send(bot.chat_id, "Computadora: " + pc_status)
+
+                        if configs.mqtt_enabled:
+                            if mqtt.pc_online:
+                                mylib.log_print(
+                                    f"mqtt.pc_online: {mqtt.pc_online}",
+                                    level=mylib.DEBUG,
+                                )
+                                resp = mqtt.request(b"ping", timeout_ms=5000)
+                                mylib.log_print(
+                                    f'Respuesta de la computadora: {resp}',
+                                    level=mylib.DEBUG,
+                                )
+                                if resp == "pong":
+                                    pc_status = "Encendida"
+                                else:
+                                    pc_status = "Sin respuesta"
+                                bot.send(bot.chat_id, "Computadora: " + pc_status)
 
                     elif bot.command == '/estado':
                         msg = ""
                         # Obtiene los valores de temperatura y humedad del sensor cableado (estudio)
                         if sensor_st.update_values():
-                            msg = f"Temperatura: {sensor_st.get_temp()}° \nHumedad: {sensor_st.get_hum()}%\n"
+                            msg = f"Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%\n"
                             mylib.log_print(
                                 f"Temperatura: {sensor_st.get_temp()}°",
                                 level=mylib.DEBUG,
@@ -209,8 +267,6 @@ while True:
                         # Estado de la bateria
                         msg += "Cargador bateria: " + {0: "Apagado", 1: "Encendido"}.get(cargadorBat.status(), "Estado desconocido") + "\n"
                         
-                        mylib.log_print(msg, level=mylib.DEBUG)
-
                         # estado de la computadora
                         if configs.mqtt_enabled:
                             resp = mqtt.request(b"status", timeout_ms=5000)
@@ -230,6 +286,8 @@ while True:
                                 "Error de respuesta al comando estado",
                                 level=mylib.ERROR,
                             )
+                        else:
+                            mylib.log_print(f"Respuesta al comando /estado: {msg}", level=mylib.DEBUG)
                         
                     elif bot.command == '/cortar':
                         # se activa relé que pone a tierra el vivo de la red de 220V.
@@ -309,6 +367,7 @@ while True:
 
                                 
                         elif AC_in_status and not AC_out_status:
+                            mylib.log_print("La radio ya estaba apagada")
                             bot.send(bot.chat_id, "Ya está apagada")
 
  
@@ -336,6 +395,7 @@ while True:
 
 
                         elif AC_in_status and AC_out_status:
+                            mylib.log_print("La radio ya estaba encendida")
                             bot.send(bot.chat_id, "Ya está encendida")
 
 
@@ -348,6 +408,7 @@ while True:
                         delay = configs.reset_delay
                         bot.send(bot.chat_id, f'Ok, voy a reiniciarme en {delay} segundos.')
                         time.sleep(delay)
+                        flush_logs()
                         reset()
         else:
             mylib.log_print('Sin internet, reconectando', level=mylib.WARNING)
@@ -361,17 +422,12 @@ while True:
                 else:
                     time.sleep(5)
     
-        mylib.log_print('Limpiando memoria', level=mylib.DEBUG)
         time.sleep(3)
         gc.collect()
-        mylib.log_print(f'Memoria: {gc.mem_free()}', level=mylib.DEBUG)
         t = time.localtime(time.time() + UTC_OFFSET)
         if t[4] == 0 and t[5] < 10 and check_internet_flag:
             check_internet_flag = False
-            if bot.test_connection():
-                mylib.log_print("Check de internet: OK", level=mylib.DEBUG)
-                pass
-            else:
+            if not bot.test_connection():
                 mylib.log_print("Check de internet: Error", level=mylib.WARNING)
                 wlan.disconnect()
 
@@ -387,5 +443,8 @@ while True:
         )
         gc.collect()
         time.sleep(3)
+    finally:
+        if telegram_ready:
+            flush_logs()
 
     
