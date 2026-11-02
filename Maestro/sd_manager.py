@@ -16,3 +16,27 @@ def mount(cs, mosi, miso, sck):
             except Exception:
                 pass
         return None
+
+
+def unmount(sd):
+    success = True
+
+    try:
+        uos.sync()
+    except Exception as error:
+        print("Error al sincronizar la tarjeta SD:", error)
+        success = False
+
+    try:
+        uos.umount("/sd")
+    except Exception as error:
+        print("Error al desmontar la tarjeta SD:", error)
+        success = False
+
+    try:
+        sd.deinit()
+    except Exception as error:
+        print("Error al liberar la tarjeta SD:", error)
+        success = False
+
+    return success

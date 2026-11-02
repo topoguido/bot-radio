@@ -65,33 +65,23 @@ class releCarga:
      
      def on(self):
          self.rele.value(1)
-         mylib.log_print("Cargador encendido", level=mylib.DEBUG)
          return True
 
      def off(self):
           self.rele.value(0)
-          mylib.log_print("Cargador apagado", level=mylib.DEBUG)
           return True
     
      def status(self):
-        mylib.log_print(
-            f"Estado cargador: {self.rele.value()}",
-            level=mylib.DEBUG,
-        )
         return self.rele.value()
 
      def checkCarga(self, value):
         if value >= (self.Vmax):
              #apaga
-            mylib.log_print(f"Tension bateria: {value}", level=mylib.DEBUG)
-            mylib.log_print("Apagando cargador", level=mylib.DEBUG)
             self.off()
             return False
         
         if value < self.Vmin:
             # enciende
-            mylib.log_print(f"Tension bateria: {value}", level=mylib.DEBUG)
-            mylib.log_print("Encendiendo cargador", level=mylib.DEBUG)
             self.on()
             return True
          
@@ -153,7 +143,7 @@ class DCSensor:
           self.sensorDC = ADC(Pin(pin))
           self.sensorDC.atten(ADC.ATTN_11DB)
           self.sensorDC.width(ADC.WIDTH_12BIT)
-          self.factor_divisor_dc = 5
+          self.factor_divisor_dc = 4.9
 
 
      def leer_tension_dc(self,adc, muestras=100):

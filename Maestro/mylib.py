@@ -1,4 +1,3 @@
-import sys
 import time
 
 
@@ -43,10 +42,10 @@ def disable_logging():
     _pending = []
 
 
-def _write_log(level, message, exception=None):
+def _format_log(timestamp, level, message):
     global _log_date, _log_filename
 
-    tm = time.localtime(time.time() + _utc_offset)
+    tm = time.localtime(timestamp + _utc_offset)
     date = (tm[0], tm[1], tm[2])
     if date != _log_date:
         separator = "" if _log_directory.endswith("/") else "/"
@@ -64,17 +63,7 @@ def _write_log(level, message, exception=None):
     line = "{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}:{}:bot-radio:{}\n".format(
         tm[0], tm[1], tm[2], tm[3], tm[4], tm[5], level_name, message
     )
-
-    try:
-        with open(_log_filename, "a") as file:
-            file.write(line)
-            if exception is not None:
-                sys.print_exception(exception, file)
-    except Exception as error:
-        emergency_print("Error al escribir el log:", repr(error))
-        emergency_print("Logging fallback:", line.rstrip())
-        if exception is not None:
-            sys.print_exception(exception, sys.stderr)
+    return _log_filename, line
 
 
 def configure_logging(directory, utc_offset=0):
@@ -89,10 +78,14 @@ def configure_logging(directory, utc_offset=0):
     _log_filename = None
     _utc_offset = utc_offset
 
-    pending = _pending
-    _pending = []
-    for level, message in pending:
-        _write_log(level, "[PRE-NTP] " + message)
+    timestamp = time.time()
+    for index, entry in enumerate(_pending):
+        if entry[0] is None:
+            _pending[index] = (
+                timestamp,
+                entry[1],
+                "[PRE-NTP] " + entry[2],
+            )
 
 
 def log_print(*values, level=INFO, exception=None):
@@ -104,15 +97,58 @@ def log_print(*values, level=INFO, exception=None):
     if not _log_enabled or level < INFO:
         return
 
-    if _log_directory is None:
-        if exception is not None:
-            message = message + " | " + repr(exception)
-        if len(_pending) >= _MAX_PENDING:
-            _pending.pop(0)
-        _pending.append((level, message))
-        return
+    if exception is not None:
+        message = message + " | " + repr(exception)
 
-    _write_log(level, message, exception)
+    if len(_pending) >= _MAX_PENDING:
+        _pending.pop(0)
+
+    timestamp = time.time() if _log_directory is not None else None
+    _pending.append((timestamp, level, message))
+
+
+def has_pending_logs():
+    return bool(_log_enabled and _log_directory is not None and _pending)
+
+
+def flush_logging():
+    global _pending
+
+    if not has_pending_logs():
+        return True
+
+    pending = _pending
+    _pending = []
+
+    file = None
+    open_filename = None
+    current_line = None
+    success = True
+
+    try:
+        for timestamp, level, message in pending:
+            filename, current_line = _format_log(timestamp, level, message)
+            if filename != open_filename:
+                if file is not None:
+                    file.close()
+                    file = None
+                file = open(filename, "a")
+                open_filename = filename
+            file.write(current_line)
+    except Exception as error:
+        emergency_print("Error al escribir el log:", repr(error))
+        if current_line is not None:
+            emergency_print("Logging fallback:", current_line.rstrip())
+        success = False
+    finally:
+        if file is not None:
+            try:
+                file.close()
+            except Exception as error:
+                emergency_print("Error al cerrar el log:", repr(error))
+                success = False
+
+    return success
 
 
 def formatTime(time, offset):
