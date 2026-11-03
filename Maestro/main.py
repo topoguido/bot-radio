@@ -1,11 +1,11 @@
 from machine import reset
-import mylib, sd_manager
+import mylib
 import time, ntptime, gc, network
 
 from Configurations import Configurations
 
 configs = Configurations("main")
-mylib.configure_output(configs.debug, configs.logging_status)
+mylib.configure_output(configs.debug)
 wlan = network.WLAN(network.WLAN.IF_STA)
 
 if configs.mqtt_enabled:
@@ -32,13 +32,9 @@ MQTT_RETRY_INTERVAL_MS = 30 * 1000
 last_mqtt_retry = None
 
 ntp_warning_logged = False
-sd_available_logged = False
-telegram_ready = False
 
 
 mylib.log_print('Iniciando bot')
-if configs.logging_status:
-    mylib.log_print("Logging en tarjeta SD habilitado")
 
 import utelegram, hardware
 
@@ -60,39 +56,6 @@ cargadorBat = hardware.releCarga(configs.batt_Vmin,
                                  configs.batt_Vmax,
                                  configs.debug,
                                  configs.relayCharger_Pin) # Relé que activa el cargador de bateria
-
-
-def flush_logs():
-    global sd_available_logged
-
-    if not mylib.has_pending_logs():
-        return
-
-    sd = sd_manager.mount(
-        configs.SD_CS,
-        configs.SD_MOSI,
-        configs.SD_MISO,
-        configs.SD_SCK,
-    )
-    if sd is None:
-        mylib.disable_logging()
-        return
-
-    try:
-        if not sd_available_logged:
-            mylib.log_print("Tarjeta SD disponible para logging")
-            sd_available_logged = True
-
-        if not mylib.flush_logging():
-            mylib.disable_logging()
-    except Exception as error:
-        mylib.emergency_print("Error al vaciar logs en la tarjeta SD:", error)
-        mylib.disable_logging()
-    finally:
-        if not sd_manager.unmount(sd):
-            mylib.disable_logging()
-        gc.collect()
-
 
 while True:
     try:
@@ -118,9 +81,7 @@ while True:
                     time_flag = True
                     ntp_recovered = ntp_warning_logged
                     ntp_warning_logged = False
-                    if configs.logging_status:
-                        mylib.configure_logging("/sd", UTC_OFFSET)
-                        mylib.log_print("Sistema iniciado")
+                    mylib.log_print("Sistema iniciado")
                     if ntp_recovered:
                         mylib.log_print("Servicio NTP recuperado")
                     else:
@@ -183,9 +144,6 @@ while True:
                     wlan.disconnect()
                     time.sleep(1)
                     continue
-
-                if not bot.get_updates_failed:
-                    telegram_ready = True
 
                 if message_received:
 
@@ -408,7 +366,6 @@ while True:
                         delay = configs.reset_delay
                         bot.send(bot.chat_id, f'Ok, voy a reiniciarme en {delay} segundos.')
                         time.sleep(delay)
-                        flush_logs()
                         reset()
         else:
             mylib.log_print('Sin internet, reconectando', level=mylib.WARNING)
@@ -443,8 +400,5 @@ while True:
         )
         gc.collect()
         time.sleep(3)
-    finally:
-        if telegram_ready:
-            flush_logs()
 
     

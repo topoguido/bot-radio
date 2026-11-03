@@ -8,7 +8,6 @@ class Configurations:
             data =  json.load(f)
 
             self.debug = data["debug"]
-            self.logging_status = data["logging"]["enabled"]
 
             if type == "boot":
                 self.wifi_ssid = data["wifi_config"]["ssid"]
@@ -43,8 +42,3 @@ class Configurations:
                 self.relayContact_Pin = data["peripherals"]["relayContact_Pin"]
                 self.relayCharger_Pin = data["peripherals"]["relayCharger_Pin"]
                 self.relayDif_Pin = data["peripherals"]["relayDif_Pin"]
-
-                self.SD_CS = data["peripherals"]["SD_CS"]
-                self.SD_MOSI = data["peripherals"]["SD_MOSI"]
-                self.SD_MISO = data["peripherals"]["SD_MISO"]
-                self.SD_SCK = data["peripherals"]["SD_SCK"]
