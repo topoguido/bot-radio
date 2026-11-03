@@ -94,7 +94,7 @@ class ubot:
                 self.url + "/sendMessage",
                 data=payload,
                 headers=headers,
-                timeout=5,
+                timeout=10,
             )
 
             if response.status_code == 200:

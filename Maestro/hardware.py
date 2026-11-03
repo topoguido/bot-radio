@@ -1,9 +1,7 @@
-from machine import ADC, Pin, SDCard
+from machine import ADC, Pin
 import dht
-import mylib
 from time import sleep, ticks_ms, ticks_diff, sleep_us
 from math import sqrt
-import uos
 
 class sensor:
     
@@ -143,7 +141,7 @@ class DCSensor:
           self.sensorDC = ADC(Pin(pin))
           self.sensorDC.atten(ADC.ATTN_11DB)
           self.sensorDC.width(ADC.WIDTH_12BIT)
-          self.factor_divisor_dc = 4.9
+          self.factor_divisor_dc = 5
 
 
      def leer_tension_dc(self,adc, muestras=100):
@@ -161,45 +159,3 @@ class DCSensor:
 
      def getStatus(self):
         return self.leer_tension_dc(self.sensorDC)
-
-class MySDCard:
-    def __init__(self, cs_pin, mosi_pin, miso_pin, sck_pin):
-        self.cs = cs_pin
-        self.mosi = mosi_pin
-        self.miso = miso_pin
-        self.sck = sck_pin
-        self.sd = None
-
-    def init(self):
-        try:
-            self.sd = SDCard(
-                slot=2,
-                cs=self.cs,
-                mosi=self.mosi,
-                miso=self.miso,
-                sck=self.sck,
-            )
-            uos.mount(self.sd, "/sd")
-            return True
-        except Exception as e:
-            mylib.emergency_print("Error al inicializar la tarjeta SD:", e)
-            return False
-
-    def deinit(self):
-        try:
-            uos.umount("/sd")
-            self.sd.deinit()
-            self.sd = None
-            return True
-        except Exception as e:
-            mylib.emergency_print("Error al desmontar la tarjeta SD:", e)
-            return False
-
-    def write_file(self, filename, data):
-        try:
-            with open("/sd/" + filename, "a") as f:
-                f.write(data + "\n")
-            return True
-        except Exception as e:
-            mylib.emergency_print("Error al escribir en el archivo:", e)
-            return False

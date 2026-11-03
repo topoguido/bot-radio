@@ -14,7 +14,7 @@
     "repo": "bot-radio",
     "branch": "main",
     "files": ["boot.py", "main.py", "hardware.py", "utelegram.py", "Bot_configurations.py", 
-              "Configurations.py", "config.json", "mylib.py", "mqtt_manager.py", "sd_manager.py"],
+              "Configurations.py", "config.json", "mylib.py", "mqtt_manager.py"],
     "working_dir": "Maestro"
   },
 
@@ -40,14 +40,7 @@
     "sensorTH_Pin": 32,
     "relayContact_Pin": 33,
     "relayCharger_Pin": 26,
-    "relayDif_Pin": 25,
-    "SD_CS":5,
-    "SD_MOSI":23,
-    "SD_MISO":19,
-    "SD_SCK":18
-  },
-  "logging":{
-    "enabled":true
+    "relayDif_Pin": 25
   },
 
   "debug": true
