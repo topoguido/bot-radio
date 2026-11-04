@@ -1,7 +1,7 @@
 {
   "wifi_config": {
-    "ssid": "ESCUELA",
-    "password": "laplazadelaschacras2025"
+    "ssid": "CALESITA",
+    "password": "3empanadas"
   },
 
   "device_conf": {
@@ -9,15 +9,40 @@
   },
 
   "update_params": {
-    "status": true,
+    "status": false,
     "user": "topoguido",
     "repo": "bot-radio",
     "branch": "main",
     "files": ["boot.py", "main.py", "hardware.py", "utelegram.py", "Bot_configurations.py", 
-              "Configurations.py", "config.json", "mylib.py"],
+              "Configurations.py", "config.json", "mylib.py", "mqtt_manager.py"],
     "working_dir": "Maestro"
+  },
+
+  "mqtt_conf": {
+    "enabled": true,
+    "server": "192.168.0.106",
+    "port": 1883,
+    "client_id": "esp32",
+    "topic_cmd": "pc/pc-auto/cmd",
+    "topic_status": "pc/pc-auto/status",
+    "topic_resp": "pc/pc-auto/resp"
+  },
+
+  "batt_conf":{
+    "charger_enabled": true,
+    "Vmin": 11.4,
+    "Vmax": 14.0
+  },
+
+  "peripherals":{
+    "sensorAC_IN_Pin": 34,
+    "sensorAC_OUT_Pin": 35,
+    "sensorDC_Pin": 36,
+    "sensorTH_Pin": 32,
+    "relayContact_Pin": 33,
+    "relayCharger_Pin": 26,
+    "relayDif_Pin": 25
   },
 
   "debug": true
 }
-
