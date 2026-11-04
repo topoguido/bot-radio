@@ -32,6 +32,7 @@ class Configurations:
                 self.topic_status = data["mqtt_conf"]["topic_status"].encode()
                 self.topic_resp  = data["mqtt_conf"]["topic_resp"].encode()
 
+                self.charger_enabled = data["batt_conf"]["charger_enabled"]
                 self.batt_Vmin = data["batt_conf"]["Vmin"]
                 self.batt_Vmax = data["batt_conf"]["Vmax"]
 

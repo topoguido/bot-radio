@@ -123,16 +123,17 @@ while True:
                         mylib.log_print(f"Tension de bateria: {Vbat} V")
                         last_battery_log = now
 
-                    previous_charger_status = cargadorBat.status()
-                    charger_status = cargadorBat.checkCarga(Vbat)
-                    if charger_status is not None and charger_status != previous_charger_status:
-                        mylib.log_print(
-                            "Cargador de bateria {} con tension {:.2f} V".format(
-                                "encendido" if charger_status else "apagado",
-                                Vbat,
+                    if configs.charger_enabled:
+                        previous_charger_status = cargadorBat.status()
+                        charger_status = cargadorBat.checkCarga(Vbat)
+                        if charger_status is not None and charger_status != previous_charger_status:
+                            mylib.log_print(
+                                "Cargador de bateria {} con tension {:.2f} V".format(
+                                    "encendido" if charger_status else "apagado",
+                                    Vbat,
+                                )
                             )
-                        )
-                    last_battery_check = now
+                        last_battery_check = now
                 
                 message_received = bot.read_once()
                 if bot.get_updates_failures >= 3:
@@ -223,7 +224,10 @@ while True:
                         msg += "Tensión batería: {:.1f} V\n".format(DC_sensor.getStatus())
                         
                         # Estado de la bateria
-                        msg += "Cargador bateria: " + {0: "Apagado", 1: "Encendido"}.get(cargadorBat.status(), "Estado desconocido") + "\n"
+                        if configs.charger_enabled:
+                            msg += "Cargador bateria: " + {0: "Apagado", 1: "Encendido"}.get(cargadorBat.status(), "Estado desconocido") + "\n"
+                        else:
+                            msg += "Cargador bateria: Deshabilitado\n"
                         
                         # estado de la computadora
                         if configs.mqtt_enabled:
@@ -237,7 +241,7 @@ while True:
                             else:
                                 pc_status = "Apagada"
                             msg = msg + "Computadora: " + pc_status + '\n'
-                            msg = msg + mylib.formatTime(time, UTC_OFFSET)
+                        msg = msg + mylib.formatTime(time, UTC_OFFSET)
 
                         if not bot.send(bot.chat_id, msg):
                             mylib.log_print(

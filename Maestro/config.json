@@ -19,7 +19,7 @@
   },
 
   "mqtt_conf": {
-    "enabled": false,
+    "enabled": true,
     "server": "192.168.0.106",
     "port": 1883,
     "client_id": "esp32",
@@ -29,6 +29,7 @@
   },
 
   "batt_conf":{
+    "charger_enabled": true,
     "Vmin": 11.4,
     "Vmax": 14.0
   },

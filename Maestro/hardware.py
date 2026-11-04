@@ -141,7 +141,7 @@ class DCSensor:
           self.sensorDC = ADC(Pin(pin))
           self.sensorDC.atten(ADC.ATTN_11DB)
           self.sensorDC.width(ADC.WIDTH_12BIT)
-          self.factor_divisor_dc = 5
+          self.factor_divisor_dc = 5.1
 
 
      def leer_tension_dc(self,adc, muestras=100):
