@@ -20,7 +20,7 @@ Tambien cada cierto tiempo analiza la tensión de la bateria.
 
 /cortar: opera un relé que pone a tierra el vivo de la instalación de 220V de manera de relevar el disyuntor diferencial.
 
-/estado: toma los valores del DHT11, de los sensores de corriente alterna y el sensor de corriente contínua que corresponde a la batería. Responde al chat con los datos tomados. 
+/estado: toma los valores del DHT11, de los sensores de corriente alterna y el sensor de corriente contínua que corresponde a la batería. Consulta por MQTT a la computadora del estudio si está encendida. Responde al chat con los datos tomados. 
 
 Este dispositivo contiene el archivo temp.json que no existe en el repositorio. Este archivo contiene la clave 
 msg = { 'ultimo_id_msg': 941431892 } que es utilizada por el metodo que recibe los mensajes para guardar el ultimo id. De esta forma solo se tomarian mensajes con id superiores. Al llegar un mensaje, se actualiza este id. 
@@ -77,8 +77,19 @@ estructura:
   },
 
   "batt_conf":{
+    "charger_enabled": true,
     "Vmin": 11.4,
     "Vmax": 14.3
+  },
+
+  "peripherals":{
+    "sensorAC_IN_Pin": 34,
+    "sensorAC_OUT_Pin": 35,
+    "sensorDC_Pin": 36,
+    "sensorTH_Pin": 32,
+    "relayContact_Pin": 33,
+    "relayCharger_Pin": 26,
+    "relayDif_Pin": 25
   },
 
   "debug": true
@@ -88,13 +99,13 @@ estructura:
 
 ## Conexiones
 
-Pin 1: Datos del sensor de DC. (tension contínua de la batería)
-Pin 2: Accionamiento del relé que alimenta al cargador de la batería.
-Pin 3: Lector del sensor AC conectado aguas arriba del relé que alimenta contactor principal. Se conecta por medio de un divisor resistivo (ver circuito 1)
-Pin 4: Lector del sensor AC conectado aguas abajo del relé del contactor. Se conecta por medio de un divisor resistivo (ver circuito 2)
-Pin 5: Conectado a circuito de accionamiento del relé que alimenta contactor principal (ver circuito 3)
-Pin 6: Lectura de datos del sensor DHT11.
-Pin 7: Accionamiento del relé que pone el vivo de la instalación eléctrica, a tierra. De esta forma fuerza al disyuntor diferencial a accionarse y relevar toda la instalación del servicio eléctrico.
+Pin 36: Datos del sensor de DC. (tension contínua de la batería)
+Pin 26: Accionamiento del relé que alimenta al cargador de la batería.
+Pin 34: Lector del sensor AC conectado aguas arriba del relé que alimenta contactor principal. Se conecta por medio de un divisor resistivo (ver circuito 1)
+Pin 35: Lector del sensor AC conectado aguas abajo del relé del contactor. Se conecta por medio de un divisor resistivo (ver circuito 2)
+Pin 33: Conectado a circuito de accionamiento del relé que alimenta contactor principal (ver circuito 3)
+Pin 32: Lectura de datos del sensor DHT11.
+Pin 25: Accionamiento del relé que pone el vivo de la instalación eléctrica, a tierra. De esta forma fuerza al disyuntor diferencial a accionarse y relevar toda la instalación del servicio eléctrico.
 
 --------------------------------------------------------------------------------
 ## Control de carga de la bateria
@@ -110,6 +121,9 @@ Cuando tu circuito esté midiendo el voltaje, debes programar una lógica o hist
 1. Durante la carga: El cargador inyectará 10A, lo que hará que el voltaje medido suba artificialmente rápido. Tu circuito leerá 14.4 V y apagará el cargador.
 2. Al apagar el cargador: El voltaje de la batería caerá instantáneamente unas décimas de voltio (por ejemplo, a 13.2 V o 13.5 V) porque ya no recibe la corriente del cargador. Esto es normal.
 3. La regla: Tu circuito no debe volver a encender el cargador inmediatamente cuando el voltaje baje de 14.4 V. Solo debe encenderlo cuando la batería se haya descargado por el uso real del sistema hasta llegar a los 12.2 V.
+
+Los valores de tensión máxima y mínima por el que se rige este proceso, están en el archivo config.json
+
 --------------------------------------------------------------------------------
 ## Sensores de corriente alterna:
 
