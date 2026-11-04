@@ -1,5 +1,5 @@
-import urequests
-import json
+import urequests, json, gc
+import mylib
 from Bot_configurations import Bot_configurations
 
 class ubot:
@@ -16,15 +16,20 @@ class ubot:
         self.message_offset = None
         self.commands = None
         self.greeting = False
+        self.get_updates_failed = False
+        self.get_updates_failures = 0
         
        
     def getCommands(self):
         commands = {}
         response = None
+        response_json = None
+        headers = None
         try:
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-            if self.debug: print(f'URL: {self.url}')
-            response = urequests.get(self.url + '/getMyCommands', headers=headers)
+            mylib.log_print("Get Commands", level=mylib.DEBUG)
+            gc.collect()
+            response = urequests.get(self.url + '/getMyCommands', headers=headers, timeout=10)
             if response.status_code == 200:
                 response_json = response.json()
                 if 'result' in response_json:
@@ -35,68 +40,117 @@ class ubot:
                         self.commands = commands
                     return commands    
             else:
-                response.close()
-                print(f"Error HTTP: {response.status_code}")
+                mylib.log_print(
+                    f"Error HTTP: {response.status_code}",
+                    level=mylib.ERROR,
+                )
                 return None    
         except (ValueError):
             return None
-        except (OSError):
-            print("OSError: request timed out")
+        except (OSError) as e:
+            mylib.log_print(
+                "OSError en getCommands: " + str(e),
+                level=mylib.WARNING,
+                exception=e,
+            )
             return None
         except Exception as e:
-            print(f"Error inesperado: {e}")
+            mylib.log_print(
+                f"Error inesperado: {e}",
+                level=mylib.ERROR,
+                exception=e,
+            )
             return None
         finally:
             if response is not None:
                 response.close()
-            pass
+            response = None
+            response_json = None
+            headers = None
+            gc.collect()
 
     def reply_ping(self, chat_id):
-        if self.debug: print('Respondiendo al ping')
-        self.send(chat_id, 'pong')
+        return self.send(chat_id, 'pong')
     
     def saluda(self):
-        if self.debug: print('Saludando')
-        #self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
-        self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
+        return self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
+        #self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
     
       
     def send(self, chat_id, text):
         response = None
         data = {'chat_id': chat_id, 'text': text}
+        payload = None
+        headers = None
         try:
-            headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-            response = urequests.post(self.url + '/sendMessage', json=data, headers=headers, timeout=5)
+            payload = json.dumps(data).encode("utf-8")
+            headers = {
+                "Content-Type": "application/json; charset=utf-8",
+                "Accept": "application/json",
+            }
+
+            gc.collect()
+            response = urequests.post(
+                self.url + "/sendMessage",
+                data=payload,
+                headers=headers,
+                timeout=10,
+            )
+
             if response.status_code == 200:
-                print(f"Mensaje enviado: {data['text']}")
                 return True
             else:
-                print(f"Metodo send no puede enviar: {response.status_code}")
+                mylib.log_print(
+                    f"Metodo send no puede enviar: {response.status_code}",
+                    level=mylib.ERROR,
+                )
+                mylib.log_print("Telegram:", response.text, level=mylib.ERROR)
                 return False
         except OSError as e:
-            print('Metodo bot.send: ', e)
+            mylib.log_print(
+                'Metodo bot.send:',
+                e,
+                level=mylib.ERROR,
+                exception=e,
+            )
             return False
         
         finally:
             if response is not None:
                 response.close()
+            response = None
+            data = None
+            payload = None
+            headers = None
+            gc.collect()
 
     def read_once(self):
         messages = self.get_messages()
-        if self.debug: 
-            print('metodo read_once: ', messages)
         if messages:
-            if self.debug: print('Mensajes entrantes')
             if self.message_offset == 0:
                 self.message_offset = messages[-1]['update_id']
-                if self.debug: print(f'MSG_ID: {self.message_offset}')
                 return self.message_handler(messages[-1])
             else:
                 for message in messages:
                     if message['update_id'] >= self.message_offset:
                         self.message_offset = message['update_id']
-                        if self.debug: print(f'MSG_ID: {self.message_offset}')
                         return self.message_handler(message)
+
+    def _register_get_updates_failure(self, message, exception=None):
+        self.get_updates_failures += 1
+        if not self.get_updates_failed:
+            mylib.log_print(
+                message,
+                level=mylib.WARNING,
+                exception=exception,
+            )
+            self.get_updates_failed = True
+
+    def _register_get_updates_success(self):
+        if self.get_updates_failed:
+            mylib.log_print("Conexion con Telegram recuperada")
+        self.get_updates_failed = False
+        self.get_updates_failures = 0
 
     def get_messages(self, offset=None):
         result = []
@@ -116,23 +170,41 @@ class ubot:
 
         try:
             url = self.url + '/getUpdates?' + '&'.join(params)
-            if self.debug: print(f'Haciendo get: {url}')
-            response = urequests.get(url, timeout=8)
+            gc.collect()
+            response = urequests.get(url, timeout=12)
             if response.status_code == 200:
                 update_messages = response.json()
                 if 'result' in update_messages:
-                    if self.debug: print(f'Metodo get_messages: {update_messages}')
+                    self._register_get_updates_success()
                     for item in update_messages['result']:
                         result.append(item)
+                else:
+                    self._register_get_updates_failure(
+                        "Respuesta de Telegram sin result en getUpdates"
+                    )
+                    return None
+            else:
+                self._register_get_updates_failure(
+                    f"Error HTTP en getUpdates: {response.status_code}"
+                )
             return result
-        except (ValueError):
+        except ValueError as e:
+            self._register_get_updates_failure(
+                "Respuesta invalida de Telegram en getUpdates: " + repr(e),
+                exception=e,
+            )
             return None
-        except (OSError):
-            if self.debug: print("OSError: request timed out")
+        except (OSError) as e:
+            self._register_get_updates_failure(
+                "OSError en get_messages: " + str(e),
+                exception=e,
+            )
             return None
         finally:
             if response is not None:
                 response.close()
+            response = None
+            gc.collect()
 
 
     def message_handler(self, message):
@@ -153,7 +225,7 @@ class ubot:
         for entity in entities:
             if 'type' in entity and entity.get('type') == 'bot_command':
                 if parts in self.commands:
-                    if self.debug: print(f'Comando recibido: {parts}')
+                    mylib.log_print(f'Comando recibido: {parts}')
                     self.command = parts
                     self.commandOK = True
 
@@ -176,10 +248,7 @@ class ubot:
                     self.commandOK = False
                     return False
         
-        print(f'Es un mensaje normal con el texto: {parts}')
-
     def update_temp(self, id_msg):
-        if self.debug: print(f'Metodo update_temp(id={id_msg})')
         try:
             with open("temp.json", "r") as file:
                 data = json.load(file)
@@ -192,29 +261,20 @@ class ubot:
             json.dump(data, file)
     
     def get_msg_id(self):
-        if self.debug: print(f'Metodo get_msg_id()')
         try:
             with open("temp.json", "r") as f:
                 temp = json.load(f)
-                if self.debug: print(f'Metodo get_msg_id() - archivo existente, datos: {temp}')
                 self.message_offset = temp["ultimo_id_msg"]
 
         except (OSError, ValueError) as e:
-            if self.debug:
-                print(f'Excepcion: {e}')
-                print(f'Metodo get_msg_id() - Archivo no existe. Recuperando ultimo mensaje de telegram')
             messages =  self.get_messages(offset = -1)
             if messages is not None:
-                if self.debug: print(f'Mensaje {messages}')
-                
                 if len(messages) > 0:
                     id_msg = int(messages[0]['update_id'])
                 else:
                     id_msg = 1
                 
-                if self.debug: print(f'El id capturado es: {id_msg}')
                 var = {"ultimo_id_msg": id_msg}
-                if self.debug: print(f'json a escribir {var}')
                 with open("temp.json", "w") as f:
                     json.dump(var, f)
                 self.message_offset =  id_msg
@@ -224,6 +284,7 @@ class ubot:
     def test_connection(self):
         response = None
         try:
+            gc.collect()
             response = urequests.get(self.url + '/getMe', timeout=5)
             if response.status_code == 200:
                 return True
@@ -234,3 +295,5 @@ class ubot:
         finally:
             if response is not None:
                 response.close()
+            response = None
+            gc.collect()

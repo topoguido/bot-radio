@@ -24,5 +24,22 @@ class Configurations:
                 self.wifi_ssid = data["wifi_config"]["ssid"]
                 self.wifi_password = data["wifi_config"]["password"]
 
+                self.mqtt_enabled = data["mqtt_conf"]["enabled"]
+                self.server = data["mqtt_conf"]["server"]
+                self.port = data["mqtt_conf"]["port"]
+                self.client_id = data["mqtt_conf"]["client_id"].encode()
+                self.topic_cmd = data["mqtt_conf"]["topic_cmd"].encode()
+                self.topic_status = data["mqtt_conf"]["topic_status"].encode()
+                self.topic_resp  = data["mqtt_conf"]["topic_resp"].encode()
 
+                self.charger_enabled = data["batt_conf"]["charger_enabled"]
+                self.batt_Vmin = data["batt_conf"]["Vmin"]
+                self.batt_Vmax = data["batt_conf"]["Vmax"]
 
+                self.sensorAC_IN_Pin = data["peripherals"]["sensorAC_IN_Pin"]
+                self.sensorAC_OUT_Pin = data["peripherals"]["sensorAC_OUT_Pin"]
+                self.sensorDC_Pin = data["peripherals"]["sensorDC_Pin"]
+                self.sensorTH_Pin = data["peripherals"]["sensorTH_Pin"]
+                self.relayContact_Pin = data["peripherals"]["relayContact_Pin"]
+                self.relayCharger_Pin = data["peripherals"]["relayCharger_Pin"]
+                self.relayDif_Pin = data["peripherals"]["relayDif_Pin"]
