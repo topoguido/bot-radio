@@ -185,7 +185,7 @@ while True:
                                 level=mylib.DEBUG,
                             )
                         else:
-                            msg = 'No puedo obtener los datos del sensor\n'
+                            msg = 'Temperatura - humedad: sin datos de sensor\n'
                         
                         # Estado de la red de 220V
                         tension_AC_In, hayTension_AC_In = AC_sensor.getStatusAC_In()
