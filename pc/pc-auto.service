@@ -1,0 +1,19 @@
+[Unit]
+Description=Estudio MQTT Listener
+Wants=network-online.target mosquitto.service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+
+WorkingDirectory=/home/Datos/Sistema-NO-TOCAR/mqtt/bot-radio/pc
+ExecStart=/home/Datos/Sistema-NO-TOCAR/mqtt/bot-radio/venv/bin/python3 /home/Datos/Sistema-NO-TOCAR/mqtt/bot-radio/pc/main.py
+
+Restart=on-failure
+RestartSec=5
+# Variables de entorno opcionales
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
