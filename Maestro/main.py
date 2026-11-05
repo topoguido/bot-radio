@@ -179,9 +179,10 @@ while True:
                         msg = ""
                         # Obtiene los valores de temperatura y humedad del sensor cableado (estudio)
                         if sensor_st.update_values():
-                            msg = f"Temperatura: {sensor_st.get_temp()}° - Humedad: {sensor_st.get_hum()}%\n"
+                            msg = "Temperatura: {:.1f} °C | Humedad: {:.1f} %".format(sensor_st.get_temp(), sensor_st.get_hum())
+                            msg = msg + '\n'
                             mylib.log_print(
-                                f"Temperatura: {sensor_st.get_temp()}°",
+                                "Temperatura: {:.1f} °C | Humedad: {:.1f} %".format(sensor_st.get_temp(), sensor_st.get_hum()),
                                 level=mylib.DEBUG,
                             )
                         else:
