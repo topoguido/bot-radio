@@ -73,8 +73,8 @@ class ubot:
         return self.send(chat_id, 'pong')
     
     def saluda(self):
-        return self.send(int(self.config.chat_id_default), 'Hola, el bot se ha iniciado')
-        #self.send(int(self.config.group_id_default), 'Hola, el bot se ha iniciado')
+        return self.send(int(self.config.chat_id_default), 'El bot se ha iniciado')
+        #return self.send(int(self.config.group_id_default), 'El bot se ha iniciado')
     
       
     def send(self, chat_id, text):
