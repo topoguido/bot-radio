@@ -6,7 +6,7 @@ from math import sqrt
 class sensor:
     
     def __init__(self, pin, mode=Pin.IN):
-        self.sensor_temp = dht.DHT11(Pin(pin))
+        self.sensor_temp = dht.DHT22(Pin(pin))
         self._temp = None
         self._hum = None
     
