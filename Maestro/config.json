@@ -1,15 +1,10 @@
 {
-  "wifi_config": {
-    "ssid": "ESCUELA",
-    "password": "laplazadelaschacras2025"
-  },
-
   "device_conf": {
     "reset_delay": 5
   },
 
   "update_params": {
-    "status": false,
+    "status": true,
     "user": "topoguido",
     "repo": "bot-radio",
     "branch": "main",
