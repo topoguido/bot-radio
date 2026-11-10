@@ -10,8 +10,9 @@ class Configurations:
             self.debug = data["debug"]
 
             if type == "boot":
-                self.wifi_ssid = data["wifi_config"]["ssid"]
-                self.wifi_password = data["wifi_config"]["password"]
+                datawf = json.load(open("config_wifi.json", "r"))
+                self.wifi_ssid = datawf["wifi_config"]["ssid"]
+                self.wifi_password = datawf["wifi_config"]["password"]
                 self.update_status = data["update_params"]["status"]
                 self.update_user = data["update_params"]["user"]
                 self.update_repo = data["update_params"]["repo"]
