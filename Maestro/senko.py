@@ -1,92 +1,175 @@
-import urequests
+import gc
+import os
 import uhashlib
+import urequests
 
 
 class Senko:
     raw = "https://raw.githubusercontent.com"
     github = "https://github.com"
+    chunk_size = 512
 
-    def __init__(self, user, repo, url=None, branch="master", working_dir="app", files=["boot.py", "main.py"], headers={}):
-        """Senko OTA agent class.
+    def __init__(
+        self,
+        user,
+        repo,
+        url=None,
+        branch="master",
+        working_dir="app",
+        files=None,
+        headers=None,
+    ):
+        """Senko OTA agent class."""
+        self.base_url = (
+            "{}/{}/{}".format(self.raw, user, repo)
+            if user
+            else url.replace(self.github, self.raw)
+        )
+        self.url = (
+            url
+            if url is not None
+            else "{}/{}/{}".format(self.base_url, branch, working_dir)
+        )
+        self.headers = {} if headers is None else headers
+        self.files = ["boot.py", "main.py"] if files is None else files
 
-        Args:
-            user (str): GitHub user.
-            repo (str): GitHub repo to fetch.
-            branch (str): GitHub repo branch. (master)
-            working_dir (str): Directory inside GitHub repo where the micropython app is.
-            url (str): URL to root directory.
-            files (list): Files included in OTA update.
-            headers (list, optional): Headers for urequests.
-        """
-        self.base_url = "{}/{}/{}".format(self.raw, user, repo) if user else url.replace(self.github, self.raw)
-        self.url = url if url is not None else "{}/{}/{}".format(self.base_url, branch, working_dir)
-        self.headers = headers
-        self.files = files
+    @staticmethod
+    def _remove(path):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
-    def _check_hash(self, x, y):
-        x_hash = uhashlib.sha1(x.encode())
-        y_hash = uhashlib.sha1(y.encode())
-
-        x = x_hash.digest()
-        y = y_hash.digest()
-
-        if str(x) == str(y):
-            return True
-        else:
-            return False
-
-    def _get_file(self, url):
-        payload = urequests.get(url, headers=self.headers)
-        code = payload.status_code
-
-        if code == 200:
-            return payload.text
-        else:
+    def _hash_file(self, path):
+        try:
+            local_file = open(path, "rb")
+        except OSError:
             return None
 
-    def _check_all(self):
+        digest = uhashlib.sha1()
+        buffer = bytearray(self.chunk_size)
+        view = memoryview(buffer)
+
+        try:
+            while True:
+                size = local_file.readinto(buffer)
+                if not size:
+                    break
+                digest.update(view[:size])
+        finally:
+            local_file.close()
+
+        return digest.digest()
+
+    def _download_file(self, file):
+        temporary = file + ".ota"
+        response = None
+        self._remove(temporary)
+
+        try:
+            response = urequests.get(
+                self.url + "/" + file,
+                headers=self.headers,
+            )
+            if response.status_code != 200:
+                raise OSError(
+                    "HTTP {} descargando {}".format(response.status_code, file)
+                )
+
+            digest = uhashlib.sha1()
+            buffer = bytearray(self.chunk_size)
+            view = memoryview(buffer)
+
+            with open(temporary, "wb") as output:
+                while True:
+                    size = response.raw.readinto(buffer)
+                    if not size:
+                        break
+                    chunk = view[:size]
+                    digest.update(chunk)
+                    output.write(chunk)
+
+            return temporary, digest.digest()
+        except Exception:
+            self._remove(temporary)
+            raise
+        finally:
+            if response is not None:
+                response.close()
+            gc.collect()
+
+    def _stage_changes(self):
         changes = []
 
         for file in self.files:
-            latest_version = self._get_file(self.url + "/" + file)
-            if latest_version is None:
-                continue
+            self._remove(file + ".ota")
 
-            try:
-                with open(file, "r") as local_file:
-                    local_version = local_file.read()
-            except:
-                local_version = ""
+        try:
+            for file in self.files:
+                gc.collect()
+                temporary, remote_hash = self._download_file(file)
+                local_hash = self._hash_file(file)
 
-            if not self._check_hash(latest_version, local_version):
-                changes.append(file)
+                if remote_hash == local_hash:
+                    self._remove(temporary)
+                else:
+                    changes.append((file, temporary, local_hash is not None))
+        except Exception:
+            for file in self.files:
+                self._remove(file + ".ota")
+            raise
 
         return changes
 
-    def fetch(self):
-        """Check if newer version is available.
+    def _apply_changes(self, changes):
+        applied = []
 
-        Returns:
-            True - if is, False - if not.
-        """
-        if not self._check_all():
-            return False
-        else:
-            return True
+        try:
+            for file, temporary, has_original in changes:
+                backup = file + ".bak"
+                self._remove(backup)
+
+                if has_original:
+                    os.rename(file, backup)
+
+                try:
+                    os.rename(temporary, file)
+                except Exception:
+                    if has_original:
+                        os.rename(backup, file)
+                    raise
+
+                applied.append((file, backup, has_original))
+        except Exception:
+            for file, backup, has_original in reversed(applied):
+                self._remove(file)
+                if has_original:
+                    os.rename(backup, file)
+
+            for _, temporary, _ in changes:
+                self._remove(temporary)
+            raise
+
+        for _, backup, has_original in applied:
+            if has_original:
+                self._remove(backup)
+
+    def fetch(self):
+        """Return True when at least one remote file differs."""
+        changes = self._stage_changes()
+
+        for _, temporary, _ in changes:
+            self._remove(temporary)
+
+        return bool(changes)
 
     def update(self):
-        """Replace all changed files with newer one.
+        """Download and install changed files, returning whether any changed."""
+        changes = self._stage_changes()
 
-        Returns:
-            True - if changes were made, False - if not.
-        """
-        changes = self._check_all()
-
-        for file in changes:
-            with open(file, "w") as local_file:
-                local_file.write(self._get_file(self.url + "/" + file))
-
-        if changes:
-            return True
-        else:
+        if not changes:
             return False
+
+        self._apply_changes(changes)
+        gc.collect()
+        return True
