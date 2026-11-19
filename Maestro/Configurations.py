@@ -22,8 +22,10 @@ class Configurations:
 
             if type == "main":
                 self.reset_delay = data["device_conf"]["reset_delay"]
-                self.wifi_ssid = data["wifi_config"]["ssid"]
-                self.wifi_password = data["wifi_config"]["password"]
+                
+                datawf = json.load(open("config_wifi.json", "r"))
+                self.wifi_ssid = datawf["wifi_config"]["ssid"]
+                self.wifi_password = datawf["wifi_config"]["password"]
 
                 self.mqtt_enabled = data["mqtt_conf"]["enabled"]
                 self.server = data["mqtt_conf"]["server"]
