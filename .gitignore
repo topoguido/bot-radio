@@ -1,5 +1,9 @@
 Maestro/bot_config.json
-Maestro/config_wifi.json
-.idea/*
-__pycache__*
-.vscode
+config_wifi.json
+.idea/
+**/__pycache__/
+*.py[cod]
+.venv/
+.vscode/
+/github
+/github.pub
