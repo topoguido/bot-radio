@@ -1,4 +1,4 @@
-Maestro/bot_config.json
+bot_config.json
 config_wifi.json
 .idea/
 **/__pycache__/
@@ -7,3 +7,4 @@ config_wifi.json
 .vscode/
 /github
 /github.pub
+*.code-workspace
