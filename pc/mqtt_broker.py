@@ -43,7 +43,7 @@ class Mqtt_listener:
 
         if payload == "shutdown":
             client.publish(self.topic_resp, "apagando", retain=False)
-            time.sleep(5)
+            time.sleep(1)
             try:
                 subprocess.run(
                     ["/usr/sbin/shutdown", "-h", "now"],

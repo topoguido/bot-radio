@@ -1,5 +1,6 @@
 bot_config.json
 config_wifi.json
+temp.json
 .idea/
 **/__pycache__/
 *.py[cod]
