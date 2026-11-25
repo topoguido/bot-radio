@@ -266,8 +266,8 @@ while True:
                                 level=mylib.DEBUG,
                             )
                             if resp == "apagando":
-                                bot.send(bot.chat_id, "La computadora se está apagando. Se espera 10 segundos")
-                                time.sleep(15)
+                                bot.send(bot.chat_id, "La computadora se está apagando. Se espera 20 segundos")
+                                time.sleep(20)
                             else:
                                 bot.send(bot.chat_id, "No hay respuesta de la computadora")
                                 time.sleep(1)
@@ -294,8 +294,8 @@ while True:
                                 level=mylib.DEBUG,
                             )
                             if resp == "apagando":
-                                bot.send(bot.chat_id, "La computadora se está apagando. Se espera 10 segundos")        
-                                time.sleep(15)
+                                bot.send(bot.chat_id, "La computadora se está apagando. Se espera 20 segundos")        
+                                time.sleep(20)
 
                         mylib.log_print("Consultando datos AC", level=mylib.DEBUG)
                         _, AC_in_status = AC_sensor.getStatusAC_In()
